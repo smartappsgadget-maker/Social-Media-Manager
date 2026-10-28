@@ -649,13 +649,17 @@ export default function LineupStudio({ onSendToWatermark }) {
   const handleCopyCaption = () => {
     const starList = starters
       .slice(0, 11)
+      .filter(p => p.number && p.name)
       .map(p => `#${p.number} ${p.name}${p.isCaptain ? ' (C)' : ''}`)
       .join('\n')
 
-    const subList = substitutes.slice(0, 7).map(s => `#${s.number} ${s.name}`).join(', ')
-    const local = matchDetails.isHome ? 'EM CASA 🏠' : 'FORA ✈️'
+    const subList = substitutes
+      .slice(0, 7)
+      .filter(s => s.number && s.name)
+      .map(s => `#${s.number} ${s.name}`)
+      .join(', ')
 
-    const text = `📋 ONZE INICIAL • ${matchDetails.roundNumber || '4ª'} JORNADA 🔥⚽\n\n🏆 ${matchDetails.competition || 'Campeonato Concelhio AFAST'}\n📍 Jogo: ${local} vs ${matchDetails.opponentName || 'Adversário'}\n📅 Época 26/27\n\n11 TITULAR:\n${starList}\n\nBANCO DE SUPLENTES (7):\n${subList}\n\n#GRAL #OnzeInicial #AFAST #FutebolConcelhio #DiaDeJogo #VamosEquipa`
+    const text = `📋 ONZE INICIAL 🔥⚽\n\n🏆 Campeonato Concelhio AFAST\n📅 Época 26/27\n\n11 TITULAR:\n${starList || 'A definir'}\n\nBANCO DE SUPLENTES (7):\n${subList || 'A definir'}\n\n#GRAL #OnzeInicial #AFAST #FutebolConcelhio #DiaDeJogo #VamosEquipa`
 
     navigator.clipboard.writeText(text)
     setCopiedCaption(true)
@@ -976,64 +980,6 @@ export default function LineupStudio({ onSendToWatermark }) {
                     <option value="germania">Germania One (Fraktur Moderno)</option>
                     <option value="grenze">Grenze Gotisch (Textura Medieval)</option>
                   </select>
-                </div>
-              </div>
-
-              {/* Card 3: Informações do Jogo (Para Legenda das Redes Sociais) */}
-              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Detalhes do Jogo (Legenda das Redes Sociais)</span>
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Jornada:</label>
-                    <input
-                      type="text"
-                      value={matchDetails.roundNumber || ''}
-                      onChange={(e) => setMatchDetails({ ...matchDetails, roundNumber: e.target.value })}
-                      placeholder="Ex: 4ª"
-                      className="w-full glass-input px-2.5 py-1.5 rounded-lg text-xs text-white font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Adversário:</label>
-                    <input
-                      type="text"
-                      value={matchDetails.opponentName || ''}
-                      onChange={(e) => setMatchDetails({ ...matchDetails, opponentName: e.target.value })}
-                      placeholder="Nome do Adversário"
-                      className="w-full glass-input px-2.5 py-1.5 rounded-lg text-xs text-white font-bold uppercase"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] text-slate-400 mb-1">Localização:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMatchDetails({ ...matchDetails, isHome: true })}
-                      className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                        matchDetails.isHome ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Casa 🏠
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMatchDetails({ ...matchDetails, isHome: false })}
-                      className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                        !matchDetails.isHome ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Fora ✈️
-                    </button>
-                  </div>
                 </div>
               </div>
 
