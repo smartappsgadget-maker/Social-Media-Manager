@@ -14,7 +14,8 @@ import {
   Type,
   LayoutGrid,
   ListOrdered,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sliders
 } from 'lucide-react'
 import { 
   DEFAULT_TEMPLATE_IMAGE,
@@ -55,6 +56,12 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
   const [displayMode, setDisplayMode] = useState('list') // 'list' | 'tactical'
   const [selectedFont, setSelectedFont] = useState('pirata') // 'pirata' | 'germania' | 'grenze'
   const [forceDynamicJornada, setForceDynamicJornada] = useState(false)
+
+  // Centering & Size Offsets for Starters & Substitutes
+  const [startersX, setStartersX] = useState(540) // Horizontal center (default 540 = center of 1080)
+  const [startersY, setStartersY] = useState(340) // Vertical start position
+  const [startersFontSize, setStartersFontSize] = useState(48) // Font size
+  const [subsY, setSubsY] = useState(1180) // Substitutes vertical position
 
   const [showQuickPaste, setShowQuickPaste] = useState(false)
   const [quickPasteText, setQuickPasteText] = useState('')
@@ -118,7 +125,11 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
         matchDetails,
         displayMode,
         fontFamily: activeFontFamily,
-        forceDynamicJornada
+        forceDynamicJornada,
+        startersX,
+        startersY,
+        startersFontSize,
+        subsY
       })
     }
   }, [
@@ -129,7 +140,11 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
     matchDetails,
     displayMode,
     selectedFont,
-    forceDynamicJornada
+    forceDynamicJornada,
+    startersX,
+    startersY,
+    startersFontSize,
+    subsY
   ])
 
   // Save photos to permanent squad memory
@@ -737,6 +752,96 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
                     <option value="germania">Germania One (Fraktur Moderno)</option>
                     <option value="grenze">Grenze Gotisch (Textura Medieval)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Card 3: Ajuste de Posição & Tamanho dos Nomes e Números */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4 text-blue-400" />
+                    <span>Centragem & Tamanho dos Nomes</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStartersX(540)
+                      setStartersY(340)
+                      setStartersFontSize(48)
+                      setSubsY(1180)
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 transition-colors"
+                  >
+                    Repor Padrão
+                  </button>
+                </div>
+
+                {/* Slider 1: Centragem Horizontal */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-slate-400">Centragem Horizontal (X):</span>
+                    <span className="font-mono text-blue-400 font-bold">{startersX}px (540 = Centro)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="380"
+                    max="700"
+                    step="5"
+                    value={startersX}
+                    onChange={(e) => setStartersX(Number(e.target.value))}
+                    className="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                {/* Slider 2: Posição Vertical */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-slate-400">Posição Vertical (Y) dos 11:</span>
+                    <span className="font-mono text-blue-400 font-bold">{startersY}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="250"
+                    max="450"
+                    step="5"
+                    value={startersY}
+                    onChange={(e) => setStartersY(Number(e.target.value))}
+                    className="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                {/* Slider 3: Tamanho da Letra */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-slate-400">Tamanho da Letra (Nomes e Números):</span>
+                    <span className="font-mono text-blue-400 font-bold">{startersFontSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="36"
+                    max="62"
+                    step="2"
+                    value={startersFontSize}
+                    onChange={(e) => setStartersFontSize(Number(e.target.value))}
+                    className="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                {/* Slider 4: Altura dos 7 Suplentes */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-slate-400">Altura dos 7 Suplentes (Y):</span>
+                    <span className="font-mono text-blue-400 font-bold">{subsY}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1050"
+                    max="1350"
+                    step="5"
+                    value={subsY}
+                    onChange={(e) => setSubsY(Number(e.target.value))}
+                    className="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                  />
                 </div>
               </div>
 

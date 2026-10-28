@@ -39,13 +39,18 @@ export async function renderLineupToCanvas(canvas, lineupData) {
 
   const ctx = canvas.getContext('2d')
   const {
-    bgImage = '/template_onze_inicial.jpg',
+    bgImage = null,
     startingXI = [],
     substitutes = [],
     playerPhotos = {}, // map: { '31': dataUrl, '5': dataUrl, ... }
     matchDetails = {},
     displayMode = 'list', // 'list' | 'tactical'
-    fontFamily = '"Pirata One", "UnifrakturCook", "Germania One", "Grenze Gotisch", cursive, serif'
+    fontFamily = '"Pirata One", "UnifrakturCook", "Germania One", "Grenze Gotisch", cursive, serif',
+    startersX = 540, // Horizontal center anchor on 1080 canvas
+    startersY = 340, // Vertical start position
+    startersFontSize = 48, // Name font size (numbers are scaled proportionally)
+    subsY = 1180, // Vertical start position for 7 substitutes
+    subsFontSize = 34 // Substitutes font size
   } = lineupData
 
   // High-resolution canvas matching the template aspect ratio (9:16)
@@ -71,20 +76,32 @@ export async function renderLineupToCanvas(canvas, lineupData) {
   }
 
   // 2. Render ONLY the 11 Starters (Titulares)
-  // Positioned in the central open zone (between top emblems and bottom crystal)
-  const startersStartY = 350
+  // Perfectly centered horizontally on the canvas with larger font sizes
   const startersHeight = 780
   if (displayMode === 'tactical') {
-    await renderStartersTactical(ctx, startingXI, playerPhotos, 200, startersStartY, 680, startersHeight, fontFamily)
+    await renderStartersTactical(ctx, startingXI, playerPhotos, 200, startersY, 680, startersHeight, fontFamily)
   } else {
     // Default Official Poster List Mode
-    await renderStartersList(ctx, startingXI, playerPhotos, 200, startersStartY, 680, startersHeight, fontFamily)
+    await renderStartersList(ctx, startingXI, playerPhotos, {
+      centerX: startersX,
+      startY: startersY,
+      totalH: startersHeight,
+      fontName: fontFamily,
+      fontSize: startersFontSize
+    })
   }
 
   // 3. Render ONLY the 7 Substitutes (Suplentes)
-  const subsStartY = startersStartY + startersHeight + 25
+  // Balanced in two columns centered horizontally
   const subsHeight = 360
-  await renderSubstitutesSection(ctx, substitutes, playerPhotos, 200, subsStartY, 680, subsHeight, fontFamily)
+  await renderSubstitutesSection(ctx, substitutes, playerPhotos, {
+    centerX: startersX,
+    startY: subsY,
+    totalW: 860,
+    totalH: subsHeight,
+    fontName: fontFamily,
+    fontSize: subsFontSize
+  })
 
   ctx.restore()
 }
@@ -93,11 +110,28 @@ export async function renderLineupToCanvas(canvas, lineupData) {
 // 11 TITULARES - LISTA OFICIAL DO POSTER
 // Unified with the template's Gothic/Blackletter font and colors
 // =========================================================================
-async function renderStartersList(ctx, starters, playerPhotos, startX, startY, totalW, totalH, fontName) {
+async function renderStartersList(ctx, starters, playerPhotos, opts) {
+  const centerX = typeof opts === 'object' && opts.centerX !== undefined ? opts.centerX : 540
+  const startY = typeof opts === 'object' && opts.startY !== undefined ? opts.startY : 340
+  const totalH = typeof opts === 'object' && opts.totalH !== undefined ? opts.totalH : 780
+  const fontName = typeof opts === 'object' ? opts.fontName : (arguments[7] || '"Pirata One"')
+  const fontSize = typeof opts === 'object' && opts.fontSize !== undefined ? opts.fontSize : 48
+
   const rowCount = Math.min(starters.length, 11)
   if (rowCount === 0) return
 
-  const rowH = totalH / 11 // ~70.9px per row
+  const rowH = totalH / 11
+  const numberFontSize = Math.round(fontSize * 1.18) // ~56px
+  const captainFontSize = Math.round(fontSize * 0.75) // ~36px
+
+  // Centering anchors:
+  // Numbers right-align at centerX - 40
+  // Photos sit around centerX - 12
+  // Names left-align starting at centerX + 18
+  const numRightX = centerX - 40
+  const photoCenterX = centerX - 12
+  const nameLeftX = centerX + 18
+  const nameNoPhotoLeftX = centerX - 15
 
   for (let i = 0; i < rowCount; i++) {
     const player = starters[i]
@@ -111,91 +145,87 @@ async function renderStartersList(ctx, starters, playerPhotos, startX, startY, t
     ctx.save()
 
     // 1. Squad Number in Gothic Font (Royal Blue + White Outline)
-    const numX = startX + 50
-    ctx.font = `700 42px ${fontName}`
+    ctx.font = `700 ${numberFontSize}px ${fontName}`
     ctx.textAlign = 'right'
     ctx.textBaseline = 'middle'
 
-    // Crisp white outline for contrast against textured background
+    // Crisp white outline
     ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 3
-    ctx.strokeText(player.number || '', numX, rowY)
+    ctx.lineWidth = 4
+    ctx.strokeText(player.number || '', numRightX, rowY)
 
     ctx.fillStyle = '#0044cc'
-    ctx.fillText(player.number || '', numX, rowY)
+    ctx.fillText(player.number || '', numRightX, rowY)
 
     // 2. Optional Circular Photo Thumbnail
-    let nameStartX = numX + 28
+    let currentNameX = photoSrc ? nameLeftX : nameNoPhotoLeftX
     if (photoSrc) {
       try {
         const pImg = await loadImage(photoSrc)
-        const photoRadius = 22
-        const photoCx = numX + 30
+        const photoRadius = Math.round(fontSize * 0.48)
         const photoCy = rowY
 
         ctx.save()
         ctx.beginPath()
-        ctx.arc(photoCx, photoCy, photoRadius, 0, Math.PI * 2)
+        ctx.arc(photoCenterX, photoCy, photoRadius, 0, Math.PI * 2)
         ctx.fillStyle = '#ffffff'
         ctx.fill()
         ctx.clip()
-        ctx.drawImage(pImg, photoCx - photoRadius, photoCy - photoRadius, photoRadius * 2, photoRadius * 2)
+        ctx.drawImage(pImg, photoCenterX - photoRadius, photoCy - photoRadius, photoRadius * 2, photoRadius * 2)
         ctx.restore()
 
         // Border ring
         ctx.beginPath()
-        ctx.arc(photoCx, photoCy, photoRadius, 0, Math.PI * 2)
+        ctx.arc(photoCenterX, photoCy, photoRadius, 0, Math.PI * 2)
         ctx.strokeStyle = '#0044cc'
-        ctx.lineWidth = 1.8
+        ctx.lineWidth = 2
         ctx.stroke()
-
-        nameStartX = photoCx + photoRadius + 16
       } catch {}
     }
 
     // 3. Player Name in Gothic Font (Royal Navy + Crisp White Outline)
     const name = (player.name || '').toUpperCase()
-    ctx.font = `700 36px ${fontName}`
+    ctx.font = `700 ${fontSize}px ${fontName}`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
 
-    // Crisp white outline
-    const maxNameW = Math.max(totalW - (nameStartX - startX) - 40, 160)
+    const maxNameW = 460
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
-    ctx.lineWidth = 3.5
-    ctx.strokeText(name, nameStartX, rowY, maxNameW)
+    ctx.lineWidth = 4
+    ctx.strokeText(name, currentNameX, rowY, maxNameW)
 
-    // Deep royal navy fill
     ctx.fillStyle = '#002677'
-    ctx.fillText(name, nameStartX, rowY, maxNameW)
+    ctx.fillText(name, currentNameX, rowY, maxNameW)
 
     // 4. Captain Mark (C) in Golden Gothic Font
     if (player.isCaptain) {
-      const nameWidth = ctx.measureText(name).width
-      const capX = nameStartX + nameWidth + 14
+      const nameWidth = Math.min(ctx.measureText(name).width, maxNameW)
+      const capX = currentNameX + nameWidth + 14
 
-      ctx.font = `700 30px ${fontName}`
+      ctx.font = `700 ${captainFontSize}px ${fontName}`
       ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 2
+      ctx.lineWidth = 2.5
       ctx.strokeText('(C)', capX, rowY)
 
       ctx.fillStyle = '#d97706' // gold
       ctx.fillText('(C)', capX, rowY)
     }
 
-    // 5. Subtle row divider line
+    // 5. Subtle row divider line centered at centerX
     const lineY = startY + (i + 1) * rowH - 4
     if (i < rowCount - 1) {
-      const grad = ctx.createLinearGradient(startX + 10, lineY, startX + totalW - 10, lineY)
+      const dividerW = 680
+      const divStartX = centerX - dividerW / 2
+      const grad = ctx.createLinearGradient(divStartX, lineY, divStartX + dividerW, lineY)
       grad.addColorStop(0, 'rgba(0, 68, 204, 0)')
-      grad.addColorStop(0.25, 'rgba(0, 68, 204, 0.18)')
-      grad.addColorStop(0.75, 'rgba(0, 68, 204, 0.18)')
+      grad.addColorStop(0.25, 'rgba(0, 68, 204, 0.22)')
+      grad.addColorStop(0.75, 'rgba(0, 68, 204, 0.22)')
       grad.addColorStop(1, 'rgba(0, 68, 204, 0)')
       ctx.strokeStyle = grad
-      ctx.lineWidth = 1
+      ctx.lineWidth = 1.2
       ctx.beginPath()
-      ctx.moveTo(startX + 10, lineY)
-      ctx.lineTo(startX + totalW - 10, lineY)
+      ctx.moveTo(divStartX, lineY)
+      ctx.lineTo(divStartX + dividerW, lineY)
       ctx.stroke()
     }
 
@@ -358,31 +388,39 @@ function drawTacticalNumberBadge(ctx, badgeX, badgeY, badgeSize, centerX, player
 // 7 SUPLENTES
 // Unified with the template's Gothic/Blackletter font and colors
 // =========================================================================
-async function renderSubstitutesSection(ctx, substitutes, playerPhotos, startX, startY, totalW, totalH, fontName) {
-  ctx.save()
+async function renderSubstitutesSection(ctx, substitutes, playerPhotos, opts) {
+  const centerX = typeof opts === 'object' && opts.centerX !== undefined ? opts.centerX : 540
+  const startY = typeof opts === 'object' && opts.startY !== undefined ? opts.startY : 1180
+  const totalW = typeof opts === 'object' && opts.totalW !== undefined ? opts.totalW : 860
+  const fontName = typeof opts === 'object' ? opts.fontName : (arguments[7] || '"Pirata One"')
+  const fontSize = typeof opts === 'object' && opts.fontSize !== undefined ? opts.fontSize : 34
 
-  const centerX = startX + totalW / 2
+  ctx.save()
 
   // 1. Header: "◆   SUPLENTES   ◆" in Gothic Font
   const headerY = startY + 16
-  ctx.font = `700 32px ${fontName}`
+  const headerFontSize = Math.round(fontSize * 1.12)
+  ctx.font = `700 ${headerFontSize}px ${fontName}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
-  ctx.lineWidth = 3
+  ctx.lineWidth = 3.5
   ctx.strokeText('◆   SUPLENTES   ◆', centerX, headerY)
 
   ctx.fillStyle = '#0044cc'
   ctx.fillText('◆   SUPLENTES   ◆', centerX, headerY)
 
-  // 2. The 7 Substitutes in 2 Balanced Columns
+  // 2. The 7 Substitutes in 2 Balanced Columns Centered Around centerX
   const subsList = substitutes.slice(0, 7)
-  const colW = (totalW - 40) / 2
-  const col1X = startX + 15
-  const col2X = startX + totalW / 2 + 20
-  const rowStartSubY = headerY + 45
-  const rowH = 58
+  const colGap = 40
+  const colW = (totalW - colGap) / 2
+  const col1Left = centerX - colGap / 2 - colW
+  const col2Left = centerX + colGap / 2
+  const rowStartSubY = headerY + 48
+  const rowH = 62
+
+  const numberFontSize = Math.round(fontSize * 1.15)
 
   for (let idx = 0; idx < subsList.length; idx++) {
     const sub = subsList[idx]
@@ -391,21 +429,23 @@ async function renderSubstitutesSection(ctx, substitutes, playerPhotos, startX, 
     }
 
     const isCol1 = idx < 4
-    const colX = isCol1 ? col1X : col2X
+    const colLeft = isCol1 ? col1Left : col2Left
     const rowIdx = isCol1 ? idx : idx - 4
     const itemY = rowStartSubY + rowIdx * rowH
 
     const numStr = sub.number || ''
     const nameStr = (sub.name || '').toUpperCase()
 
+    ctx.save()
+
     // Squad Number in Gothic Font (Royal Blue + White Outline)
-    ctx.font = `700 30px ${fontName}`
+    ctx.font = `700 ${numberFontSize}px ${fontName}`
     ctx.textAlign = 'right'
     ctx.textBaseline = 'middle'
 
-    const numX = colX + 38
+    const numX = colLeft + 50
     ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 2.5
+    ctx.lineWidth = 3
     ctx.strokeText(numStr, numX, itemY)
 
     ctx.fillStyle = '#0044cc'
@@ -413,16 +453,18 @@ async function renderSubstitutesSection(ctx, substitutes, playerPhotos, startX, 
 
     // Substitute Name in Gothic Font (Royal Navy + White Outline)
     const nameX = numX + 16
-    const maxSubNameW = Math.max(colW - (nameX - colX) - 10, 120)
-    ctx.font = `700 26px ${fontName}`
+    const maxSubNameW = colW - 70
+    ctx.font = `700 ${fontSize}px ${fontName}`
     ctx.textAlign = 'left'
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
-    ctx.lineWidth = 2.5
+    ctx.lineWidth = 3
     ctx.strokeText(nameStr, nameX, itemY, maxSubNameW)
 
     ctx.fillStyle = '#002677'
     ctx.fillText(nameStr, nameX, itemY, maxSubNameW)
+
+    ctx.restore()
   }
 
   ctx.restore()
