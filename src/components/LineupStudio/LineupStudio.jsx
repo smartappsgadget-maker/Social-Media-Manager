@@ -101,6 +101,10 @@ export default function LineupStudio({ onSendToWatermark }) {
   const [quickPasteText, setQuickPasteText] = useState('')
   const [copiedCaption, setCopiedCaption] = useState(false)
 
+  // Quick inputs by squad numbers
+  const [startersNumbersInput, setStartersNumbersInput] = useState('')
+  const [subsNumbersInput, setSubsNumbersInput] = useState('')
+
   const canvasRef = useRef(null)
 
   // 1. Initialize on Mount: Load matchdays, permanent squad photos & league teams
@@ -462,11 +466,21 @@ export default function LineupStudio({ onSendToWatermark }) {
     setQuickPasteText('')
   }
 
-  // Update starter player
+  // Update starter player with automatic squad lookup by number
   const updateStarter = (index, field, value) => {
     setStarters((prev) => {
       const updated = [...prev]
-      updated[index] = { ...updated[index], [field]: value }
+      if (field === 'number') {
+        const cleanNum = String(value).trim()
+        const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
+        if (matched) {
+          updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
+        } else {
+          updated[index] = { ...updated[index], number: value }
+        }
+      } else {
+        updated[index] = { ...updated[index], [field]: value }
+      }
       return updated
     })
   }
@@ -481,13 +495,85 @@ export default function LineupStudio({ onSendToWatermark }) {
     )
   }
 
-  // Update substitute player
+  // Update substitute player with automatic squad lookup by number
   const updateSub = (index, field, value) => {
     setSubstitutes((prev) => {
       const updated = [...prev]
-      updated[index] = { ...updated[index], [field]: value }
+      if (field === 'number') {
+        const cleanNum = String(value).trim()
+        const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
+        if (matched) {
+          updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
+        } else {
+          updated[index] = { ...updated[index], number: value }
+        }
+      } else {
+        updated[index] = { ...updated[index], [field]: value }
+      }
       return updated
     })
+  }
+
+  // Apply 11 Starters directly from numbers string (e.g. "31, 45, 5, 6, 7, 8, 9, 10, 11, 12, 14")
+  const handleApplyStartersNumbers = (e) => {
+    e?.preventDefault()
+    if (!startersNumbersInput.trim()) return
+
+    const numbers = startersNumbersInput
+      .split(/[\s,;.-]+/)
+      .map(n => n.replace(/[^\d]/g, '').trim())
+      .filter(Boolean)
+
+    if (numbers.length === 0) return
+
+    const newStarters = numbers.slice(0, 11).map((num, idx) => {
+      const found = FULL_CLUB_SQUAD.find(p => p.number === num)
+      const currentPrev = starters[idx]
+      return {
+        number: num,
+        name: found ? found.name : `JOGADOR ${num}`,
+        isCaptain: currentPrev?.isCaptain || false
+      }
+    })
+
+    while (newStarters.length < 11) {
+      const nextIdx = newStarters.length + 1
+      newStarters.push({ number: String(nextIdx), name: `JOGADOR ${nextIdx}` })
+    }
+
+    setStarters(newStarters)
+    setStartersNumbersInput('')
+    confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
+  }
+
+  // Apply 7 Substitutes directly from numbers string (e.g. "16, 17, 18, 19, 20, 21, 22")
+  const handleApplySubsNumbers = (e) => {
+    e?.preventDefault()
+    if (!subsNumbersInput.trim()) return
+
+    const numbers = subsNumbersInput
+      .split(/[\s,;.-]+/)
+      .map(n => n.replace(/[^\d]/g, '').trim())
+      .filter(Boolean)
+
+    if (numbers.length === 0) return
+
+    const newSubs = numbers.slice(0, 7).map((num) => {
+      const found = FULL_CLUB_SQUAD.find(p => p.number === num)
+      return {
+        number: num,
+        name: found ? found.name : `SUPLENTE ${num}`
+      }
+    })
+
+    while (newSubs.length < 7) {
+      const nextIdx = newSubs.length + 1
+      newSubs.push({ number: String(11 + nextIdx), name: `SUPLENTE ${nextIdx}` })
+    }
+
+    setSubstitutes(newSubs)
+    setSubsNumbersInput('')
+    confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
   }
 
   // Download high-resolution lineup card
@@ -1107,6 +1193,35 @@ export default function LineupStudio({ onSendToWatermark }) {
                 </div>
               </div>
 
+              {/* Quick Numbers Bar for 11 Starters */}
+              <form onSubmit={handleApplyStartersNumbers} className="p-3 rounded-2xl bg-slate-950 border border-blue-900/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span>Definir 11 Titulares por Números:</span>
+                  </label>
+                  <span className="text-[10px] text-blue-400 font-semibold">Associação automática</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={startersNumbersInput}
+                    onChange={(e) => setStartersNumbersInput(e.target.value)}
+                    placeholder="Ex: 31, 45, 5, 6, 7, 8, 9, 10, 11, 12, 14"
+                    className="flex-1 glass-input px-3 py-1.5 rounded-xl text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow transition-all whitespace-nowrap"
+                  >
+                    Aplicar 11
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Digita os números dos 11 jogadores separados por vírgula. Os nomes e fotos do plantel são associados instantaneamente!
+                </p>
+              </form>
+
               {/* 11 Players Inputs Grouped into 4 Rows */}
               <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
                 {[
@@ -1202,6 +1317,35 @@ export default function LineupStudio({ onSendToWatermark }) {
                 <span>7 Suplentes da <strong>{matchDetails.roundNumber} Jornada</strong></span>
                 <span className="text-[11px] text-blue-400">Slots 1 a 7</span>
               </div>
+
+              {/* Quick Numbers Bar for 7 Substitutes */}
+              <form onSubmit={handleApplySubsNumbers} className="p-3 rounded-2xl bg-slate-950 border border-blue-900/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span>Definir 7 Suplentes por Números:</span>
+                  </label>
+                  <span className="text-[10px] text-blue-400 font-semibold">Associação automática</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={subsNumbersInput}
+                    onChange={(e) => setSubsNumbersInput(e.target.value)}
+                    placeholder="Ex: 16, 17, 18, 19, 20, 21, 22"
+                    className="flex-1 glass-input px-3 py-1.5 rounded-xl text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow transition-all whitespace-nowrap"
+                  >
+                    Aplicar 7
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Digita os números dos 7 suplentes separados por vírgula. Os nomes e fotos do plantel são associados instantaneamente!
+                </p>
+              </form>
 
               {/* 7 Substitutes Inputs */}
               <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
