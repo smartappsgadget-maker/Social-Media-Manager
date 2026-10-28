@@ -15,28 +15,8 @@ const INITIAL_MATCHDAY_4 = {
   date: 'HOJE',
   venue: 'CAMPO DE JOGOS',
   coach: 'MISTER',
-  starters: [
-    { number: '31', name: 'JOÃO ANDREZO' },
-    { number: '45', name: 'MIEIRO' },
-    { number: '5', name: 'TAREMI' },
-    { number: '6', name: 'CHICO' },
-    { number: '7', name: 'CHICO CARVALHO' },
-    { number: '8', name: 'GARCEZ' },
-    { number: '9', name: 'ALAN' },
-    { number: '10', name: 'CLAUDIO' },
-    { number: '11', name: 'JOTA' },
-    { number: '12', name: 'DUARTE' },
-    { number: '14', name: 'DAVID' }
-  ],
-  substitutes: [
-    { number: '16', name: 'DANIEL' },
-    { number: '17', name: 'JOÃO' },
-    { number: '18', name: 'LUIS MOREIRA' },
-    { number: '19', name: 'WALDECK' },
-    { number: '20', name: 'ZÉ' },
-    { number: '21', name: 'SIMÃO' },
-    { number: '22', name: 'GONÇALO' }
-  ],
+  starters: Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })),
+  substitutes: Array.from({ length: 7 }, () => ({ number: '', name: '' })),
   createdAt: new Date().toISOString()
 }
 
@@ -47,13 +27,6 @@ export function loadMatchdays() {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Auto-migrate if stored matchday still has old placeholder players (MIGUEL)
-        if (parsed[0]?.starters?.[0]?.name === 'MIGUEL') {
-          parsed[0].starters = INITIAL_MATCHDAY_4.starters
-          parsed[0].substitutes = INITIAL_MATCHDAY_4.substitutes
-          if (parsed[0].opponentName === 'ADVERSÁRIO') parsed[0].opponentName = 'G.R.A.L.'
-          saveAllMatchdays(parsed)
-        }
         return parsed
       }
     }

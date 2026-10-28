@@ -472,17 +472,26 @@ export default function LineupStudio({ onSendToWatermark }) {
       const updated = [...prev]
       if (field === 'number') {
         const cleanNum = String(value).trim()
-        const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
-        if (matched) {
-          updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
+        if (!cleanNum) {
+          updated[index] = { ...updated[index], number: '', name: '' }
         } else {
-          updated[index] = { ...updated[index], number: value }
+          const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
+          if (matched) {
+            updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
+          } else {
+            updated[index] = { ...updated[index], number: value }
+          }
         }
       } else {
         updated[index] = { ...updated[index], [field]: value }
       }
       return updated
     })
+  }
+
+  // Clear all 11 starter slots to empty
+  const handleClearStarters = () => {
+    setStarters(Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })))
   }
 
   // Set captain toggle
@@ -501,17 +510,26 @@ export default function LineupStudio({ onSendToWatermark }) {
       const updated = [...prev]
       if (field === 'number') {
         const cleanNum = String(value).trim()
-        const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
-        if (matched) {
-          updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
+        if (!cleanNum) {
+          updated[index] = { ...updated[index], number: '', name: '' }
         } else {
-          updated[index] = { ...updated[index], number: value }
+          const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
+          if (matched) {
+            updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
+          } else {
+            updated[index] = { ...updated[index], number: value }
+          }
         }
       } else {
         updated[index] = { ...updated[index], [field]: value }
       }
       return updated
     })
+  }
+
+  // Clear all 7 substitute slots to empty
+  const handleClearSubs = () => {
+    setSubstitutes(Array.from({ length: 7 }, () => ({ number: '', name: '' })))
   }
 
   // Apply 11 Starters directly from numbers string (e.g. "31, 45, 5, 6, 7, 8, 9, 10, 11, 12, 14")
@@ -1190,6 +1208,14 @@ export default function LineupStudio({ onSendToWatermark }) {
                   >
                     3+3+3+2
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleClearStarters}
+                    className="px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-all"
+                    title="Limpar todos os 11 campos para preencheres os números"
+                  >
+                    Limpar
+                  </button>
                 </div>
               </div>
 
@@ -1315,7 +1341,17 @@ export default function LineupStudio({ onSendToWatermark }) {
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-slate-400 px-1">
                 <span>7 Suplentes da <strong>{matchDetails.roundNumber} Jornada</strong></span>
-                <span className="text-[11px] text-blue-400">Slots 1 a 7</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-blue-400">Slots 1 a 7</span>
+                  <button
+                    type="button"
+                    onClick={handleClearSubs}
+                    className="px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-all border border-slate-800"
+                    title="Limpar todos os 7 suplentes para preencheres os números"
+                  >
+                    Limpar
+                  </button>
+                </div>
               </div>
 
               {/* Quick Numbers Bar for 7 Substitutes */}

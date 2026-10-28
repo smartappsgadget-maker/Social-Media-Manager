@@ -130,31 +130,20 @@ export const FULL_CLUB_SQUAD = [
   { number: '95', name: 'ANDRE' }
 ]
 
-// 11 Titulares Oficiais
-export const DEFAULT_STARTING_XI = [
-  { number: '31', name: 'JOÃO ANDREZO' },
-  { number: '45', name: 'MIEIRO' },
-  { number: '5', name: 'TAREMI' },
-  { number: '6', name: 'CHICO' },
-  { number: '7', name: 'CHICO CARVALHO' },
-  { number: '8', name: 'GARCEZ' },
-  { number: '9', name: 'ALAN' },
-  { number: '10', name: 'CLAUDIO' },
-  { number: '11', name: 'JOTA' },
-  { number: '12', name: 'DUARTE' },
-  { number: '14', name: 'DAVID' }
-]
+// Slots em branco para 11 Titulares e 7 Suplentes (a preencher pelo utilizador através do número)
+export const EMPTY_STARTING_XI = Array.from({ length: 11 }, () => ({
+  number: '',
+  name: '',
+  isCaptain: false
+}))
 
-// Exatamente 7 Suplentes conforme as regras oficiais de jogo
-export const DEFAULT_SUBSTITUTES = [
-  { number: '16', name: 'DANIEL' },
-  { number: '17', name: 'JOÃO' },
-  { number: '18', name: 'LUIS MOREIRA' },
-  { number: '19', name: 'WALDECK' },
-  { number: '20', name: 'ZÉ' },
-  { number: '21', name: 'SIMÃO' },
-  { number: '22', name: 'GONÇALO' }
-]
+export const EMPTY_SUBSTITUTES = Array.from({ length: 7 }, () => ({
+  number: '',
+  name: ''
+}))
+
+export const DEFAULT_STARTING_XI = EMPTY_STARTING_XI
+export const DEFAULT_SUBSTITUTES = EMPTY_SUBSTITUTES
 
 export const DEFAULT_MATCH_DETAILS = {
   teamName: 'G.R.A.L.',

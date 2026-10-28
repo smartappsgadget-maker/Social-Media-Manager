@@ -313,6 +313,10 @@ async function renderStartersList(ctx, starters, playerPhotos, startX, startY, t
 
   for (let i = 0; i < rowCount; i++) {
     const player = starters[i]
+    if (!player || (!player.number?.trim() && !player.name?.trim())) {
+      continue
+    }
+
     const rowY = startY + i * rowH + rowH / 2
     const photoSrc = playerPhotos[player.number] || player.photoUrl
 
@@ -327,10 +331,10 @@ async function renderStartersList(ctx, starters, playerPhotos, startX, startY, t
     // Crisp white outline for contrast against textured background
     ctx.strokeStyle = '#ffffff'
     ctx.lineWidth = 3
-    ctx.strokeText(player.number || `${i + 1}`, numX, rowY)
+    ctx.strokeText(player.number || '', numX, rowY)
 
     ctx.fillStyle = '#0044cc'
-    ctx.fillText(player.number || `${i + 1}`, numX, rowY)
+    ctx.fillText(player.number || '', numX, rowY)
 
     // 2. Optional Circular Photo Thumbnail
     let nameStartX = numX + 28
@@ -444,6 +448,9 @@ async function renderStartersTactical(ctx, starters, playerPhotos, startX, start
 }
 
 async function drawTacticalPlayerCard(ctx, x, y, w, h, player, photoSrc, fontName) {
+  if (!player || (!player.number?.trim() && !player.name?.trim())) {
+    return
+  }
   ctx.save()
 
   const centerX = x + w / 2
@@ -588,12 +595,16 @@ async function renderSubstitutesSection(ctx, substitutes, playerPhotos, coach, s
 
   for (let idx = 0; idx < subsList.length; idx++) {
     const sub = subsList[idx]
+    if (!sub || (!sub.number?.trim() && !sub.name?.trim())) {
+      continue
+    }
+
     const isCol1 = idx < 4
     const colX = isCol1 ? col1X : col2X
     const rowIdx = isCol1 ? idx : idx - 4
     const itemY = rowStartSubY + rowIdx * rowH
 
-    const numStr = sub.number || `${12 + idx}`
+    const numStr = sub.number || ''
     const nameStr = (sub.name || '').toUpperCase()
 
     // Squad Number in Gothic Font (Royal Blue + White Outline)
