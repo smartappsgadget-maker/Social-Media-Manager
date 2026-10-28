@@ -280,14 +280,14 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
       if (field === 'number') {
         const cleanNum = String(value).trim()
         if (!cleanNum) {
-          updated[index] = { ...updated[index], number: '', name: '' }
+          updated[index] = { ...updated[index], number: '', name: '', isCaptain: false }
         } else {
           const intNum = parseInt(cleanNum, 10)
           const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum || (!isNaN(intNum) && parseInt(p.number, 10) === intNum))
-          if (matched) {
-            updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
-          } else {
-            updated[index] = { ...updated[index], number: value }
+          updated[index] = {
+            ...updated[index],
+            number: cleanNum,
+            name: matched ? matched.name : (cleanNum ? `JOGADOR ${cleanNum}` : '')
           }
         }
       } else {
@@ -332,10 +332,10 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
         } else {
           const intNum = parseInt(cleanNum, 10)
           const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum || (!isNaN(intNum) && parseInt(p.number, 10) === intNum))
-          if (matched) {
-            updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
-          } else {
-            updated[index] = { ...updated[index], number: value }
+          updated[index] = {
+            ...updated[index],
+            number: cleanNum,
+            name: matched ? matched.name : (cleanNum ? `JOGADOR ${cleanNum}` : '')
           }
         }
       } else {
@@ -904,75 +904,64 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
                     </span>
 
                     {group.range.map((idx) => {
-                      const player = starters[idx] || { number: '', name: '' }
+                      const player = starters[idx] || { number: '', name: '', isCaptain: false }
                       const hasPhoto = Boolean(playerPhotos[player.number])
                       return (
-                        <div key={idx} className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-950/70 border border-slate-800">
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-2 p-1.5 px-2.5 rounded-xl border transition-all ${
+                            player.isCaptain
+                              ? 'bg-amber-950/40 border-amber-500/60 shadow-sm shadow-amber-500/10'
+                              : player.number
+                              ? 'bg-slate-900/90 border-slate-700/80'
+                              : 'bg-slate-950/70 border-slate-800'
+                          }`}
+                        >
                           {/* Slot index */}
-                          <span className="text-[11px] font-mono text-slate-500 w-5 text-center">
+                          <span className="text-[11px] font-mono text-slate-500 w-4 text-center font-bold">
                             {idx + 1}
                           </span>
 
-                          {/* Number */}
+                          {/* Player Number Input - USER ONLY TYPES THIS */}
                           <input
                             type="text"
                             value={player.number}
                             onChange={(e) => updateStarter(idx, 'number', e.target.value)}
                             placeholder="Nº"
-                            className="w-12 bg-slate-900 text-white font-mono text-xs px-1.5 py-1 rounded-lg border border-slate-700 text-center font-bold focus:border-blue-500"
+                            className="w-12 bg-slate-950 text-white font-mono text-xs px-1.5 py-1.5 rounded-lg border border-slate-700 text-center font-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                           />
 
-                          {/* Name */}
-                          <input
-                            type="text"
-                            value={player.name}
-                            onChange={(e) => updateStarter(idx, 'name', e.target.value)}
-                            placeholder={`Titular ${idx + 1}`}
-                            className="flex-1 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-700 uppercase font-semibold focus:outline-none focus:border-blue-500"
-                          />
+                          {/* Auto-completed Player Name & Thumbnail */}
+                          <div className="flex-1 flex items-center gap-2 min-w-0 px-2.5 py-1 bg-slate-950/60 rounded-lg border border-slate-800/80">
+                            {hasPhoto ? (
+                              <img
+                                src={playerPhotos[player.number]}
+                                alt={player.name}
+                                className="w-5 h-5 rounded-full object-cover border border-blue-400/50 flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 flex-shrink-0">
+                                {player.number ? `#${player.number}` : '•'}
+                              </div>
+                            )}
 
-                          {/* Quick Squad Picker */}
-                          <select
-                            value=""
-                            onChange={(e) => {
-                              const p = FULL_CLUB_SQUAD[e.target.value]
-                              if (p) {
-                                updateStarter(idx, 'number', p.number)
-                                updateStarter(idx, 'name', p.name)
-                              }
-                            }}
-                            className="bg-slate-900 text-slate-400 hover:text-white border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] cursor-pointer focus:outline-none"
-                            title="Escolher do plantel oficial"
-                          >
-                            <option value="">Plantel ▼</option>
-                            {FULL_CLUB_SQUAD.map((sq, sqIdx) => (
-                              <option key={sqIdx} value={sqIdx} className="bg-slate-950 text-white">
-                                #{sq.number} {sq.name}
-                              </option>
-                            ))}
-                          </select>
+                            <span className="text-xs font-bold tracking-wide uppercase truncate block text-slate-200">
+                              {player.name || <span className="text-slate-600 font-normal italic">Nº do jogador...</span>}
+                            </span>
+                          </div>
 
-                          {/* Photo status */}
-                          <label className="cursor-pointer p-1" title={hasPhoto ? 'Foto associada da memória' : 'Adicionar foto'}>
-                            <Camera className={`w-3.5 h-3.5 ${hasPhoto ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`} />
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleSinglePhotoUpload(player.number, e)}
-                              className="hidden"
-                            />
-                          </label>
-
-                          {/* Captain toggle */}
+                          {/* Captain toggle button */}
                           <button
                             type="button"
                             onClick={() => toggleCaptain(idx)}
-                            className={`w-6 h-6 rounded-lg text-xs font-bold transition-colors flex items-center justify-center ${
-                              player.isCaptain ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 flex-shrink-0 ${
+                              player.isCaptain
+                                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-700'
                             }`}
-                            title={player.isCaptain ? 'Capitão da equipa' : 'Marcar como capitão'}
+                            title={player.isCaptain ? 'Capitão da Equipa' : 'Marcar como Capitão'}
                           >
-                            C
+                            <span>{player.isCaptain ? '★ CAP' : 'C'}</span>
                           </button>
 
                           {/* Clear single slot */}
@@ -980,8 +969,8 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
                             <button
                               type="button"
                               onClick={() => clearStarter(idx)}
-                              className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
-                              title="Limpar este titular"
+                              className="p-1 text-slate-500 hover:text-rose-400 transition-colors flex-shrink-0"
+                              title="Limpar titular"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1047,68 +1036,54 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
                 {substitutes.slice(0, 7).map((sub, idx) => {
                   const hasPhoto = Boolean(playerPhotos[sub.number])
                   return (
-                    <div key={idx} className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-950/70 border border-slate-800">
-                      <span className="text-[11px] font-mono text-slate-500 w-5 text-center">
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-2 p-1.5 px-2.5 rounded-xl border transition-all ${
+                        sub.number
+                          ? 'bg-slate-900/90 border-slate-700/80'
+                          : 'bg-slate-950/70 border-slate-800'
+                      }`}
+                    >
+                      {/* Slot index */}
+                      <span className="text-[11px] font-mono text-slate-500 w-4 text-center font-bold">
                         {idx + 1}
                       </span>
 
-                      {/* Number input */}
+                      {/* Number input - USER ONLY TYPES THIS */}
                       <input
                         type="text"
                         value={sub.number}
                         onChange={(e) => updateSub(idx, 'number', e.target.value)}
                         placeholder="Nº"
-                        className="w-12 bg-slate-900 text-white font-mono text-xs px-1.5 py-1 rounded-lg border border-slate-700 text-center font-bold"
+                        className="w-12 bg-slate-950 text-white font-mono text-xs px-1.5 py-1.5 rounded-lg border border-slate-700 text-center font-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
 
-                      {/* Name input */}
-                      <input
-                        type="text"
-                        value={sub.name}
-                        onChange={(e) => updateSub(idx, 'name', e.target.value)}
-                        placeholder={`Nome do Suplente ${idx + 1}`}
-                        className="flex-1 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-700 font-semibold focus:outline-none"
-                      />
+                      {/* Auto-completed Player Name & Thumbnail */}
+                      <div className="flex-1 flex items-center gap-2 min-w-0 px-2.5 py-1 bg-slate-950/60 rounded-lg border border-slate-800/80">
+                        {hasPhoto ? (
+                          <img
+                            src={playerPhotos[sub.number]}
+                            alt={sub.name}
+                            className="w-5 h-5 rounded-full object-cover border border-blue-400/50 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 flex-shrink-0">
+                            {sub.number ? `#${sub.number}` : '•'}
+                          </div>
+                        )}
 
-                      {/* Quick Squad Picker */}
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const p = FULL_CLUB_SQUAD[e.target.value]
-                          if (p) {
-                            updateSub(idx, 'number', p.number)
-                            updateSub(idx, 'name', p.name)
-                          }
-                        }}
-                        className="bg-slate-900 text-slate-400 hover:text-white border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] cursor-pointer focus:outline-none"
-                        title="Escolher do plantel oficial"
-                      >
-                        <option value="">Plantel ▼</option>
-                        {FULL_CLUB_SQUAD.map((sq, sqIdx) => (
-                          <option key={sqIdx} value={sqIdx} className="bg-slate-950 text-white">
-                            #{sq.number} {sq.name}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Photo indicator */}
-                      <label className="cursor-pointer p-1" title={hasPhoto ? 'Foto associada' : 'Adicionar foto'}>
-                        <Camera className={`w-3.5 h-3.5 ${hasPhoto ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`} />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleSinglePhotoUpload(sub.number, e)}
-                          className="hidden"
-                        />
-                      </label>
+                        <span className="text-xs font-bold tracking-wide uppercase truncate block text-slate-200">
+                          {sub.name || <span className="text-slate-600 font-normal italic">Nº do suplente...</span>}
+                        </span>
+                      </div>
 
                       {/* Clear single slot */}
                       {(sub.number || sub.name) && (
                         <button
                           type="button"
                           onClick={() => clearSub(idx)}
-                          className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
-                          title="Limpar este suplente"
+                          className="p-1 text-slate-500 hover:text-rose-400 transition-colors flex-shrink-0"
+                          title="Limpar suplente"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
