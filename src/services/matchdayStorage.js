@@ -42,10 +42,10 @@ export function sanitizeMatchday(m) {
     venue: m.venue || 'CAMPO DE JOGOS',
     lineupBgImage: m.lineupBgImage !== undefined 
       ? m.lineupBgImage 
-      : (localStorage.getItem('gral_lineup_template') || '/template_onze_inicial.jpg'),
+      : (m.id === 'jornada-4' ? '/template_onze_inicial.jpg' : null),
     resultBgImage: m.resultBgImage !== undefined 
       ? m.resultBgImage 
-      : (localStorage.getItem('gral_result_template') || null),
+      : null,
     starters: Array.isArray(m.starters) && m.starters.length === 11 
       ? m.starters 
       : Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })),

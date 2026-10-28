@@ -36,7 +36,7 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
   // Current active matchday squad & template
   const [starters, setStarters] = useState(() => currentMatchday?.starters || DEFAULT_STARTING_XI)
   const [substitutes, setSubstitutes] = useState(() => (currentMatchday?.substitutes || DEFAULT_SUBSTITUTES).slice(0, 7))
-  const [bgImage, setBgImage] = useState(() => currentMatchday?.lineupBgImage || DEFAULT_TEMPLATE_IMAGE)
+  const [bgImage, setBgImage] = useState(() => currentMatchday?.lineupBgImage || null)
 
   const [matchDetails, setMatchDetails] = useState({
     ...DEFAULT_MATCH_DETAILS,
@@ -79,7 +79,7 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
       lastMatchdayIdRef.current = currentMatchday.id
       setStarters(currentMatchday.starters || DEFAULT_STARTING_XI)
       setSubstitutes((currentMatchday.substitutes || DEFAULT_SUBSTITUTES).slice(0, 7))
-      setBgImage(currentMatchday.lineupBgImage || DEFAULT_TEMPLATE_IMAGE)
+      setBgImage(currentMatchday.lineupBgImage || null)
       setMatchDetails({
         ...DEFAULT_MATCH_DETAILS,
         roundNumber: currentMatchday.roundNumber || '4ª',
@@ -511,11 +511,20 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
             <div className="w-full flex items-center justify-between mb-4 pb-3 border-b border-slate-800 text-xs">
               <span className="text-slate-300 font-semibold flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-                Cartaz da {matchDetails.roundNumber} Jornada • {matchDetails.isHome ? 'CASA 🏠' : 'FORA ✈️'}
+                Cartaz da {matchDetails.roundNumber} Jornada
               </span>
-              <span className="font-mono text-blue-400 font-bold">
-                {photosCount} Fotos no Plantel
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  bgImage 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                }`}>
+                  {bgImage ? 'Template Carregado ✓' : 'Aguardar Template'}
+                </span>
+                <span className="font-mono text-slate-400 text-[11px]">
+                  ({photosCount} fotos)
+                </span>
+              </div>
             </div>
 
             {/* Canvas Container */}
@@ -525,6 +534,25 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
                 className="max-h-[620px] w-auto max-w-full object-contain rounded-xl aspect-[9/16]"
               />
             </div>
+
+            {/* Prompt when matchday template is missing */}
+            {!bgImage && (
+              <div className="w-full mt-3 p-3 rounded-2xl bg-blue-950/40 border border-blue-500/30 flex items-center justify-between gap-3 text-xs">
+                <span className="text-slate-300">
+                  Carrega a imagem do template para esta jornada:
+                </span>
+                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer transition-all flex-shrink-0">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Carregar Template</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleTemplateUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
 
             {/* Bottom Actions Bar */}
             <div className="w-full mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">

@@ -64,15 +64,10 @@ export async function renderLineupToCanvas(canvas, lineupData) {
       const loadedBgImg = await loadImage(bgImage)
       ctx.drawImage(loadedBgImg, 0, 0, width, height)
     } catch {
-      // Fallback: blue/white gradient
-      const grad = ctx.createLinearGradient(0, 0, 0, height)
-      grad.addColorStop(0, '#0a194f')
-      grad.addColorStop(0.3, '#ffffff')
-      grad.addColorStop(0.7, '#ffffff')
-      grad.addColorStop(1, '#0a194f')
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 0, width, height)
+      drawFallbackLineupBackground(ctx, width, height)
     }
+  } else {
+    drawFallbackLineupBackground(ctx, width, height)
   }
 
   // 2. Render ONLY the 11 Starters (Titulares)
@@ -431,4 +426,26 @@ async function renderSubstitutesSection(ctx, substitutes, playerPhotos, startX, 
   }
 
   ctx.restore()
+}
+
+// Fallback background when no template has been uploaded yet for this matchday
+function drawFallbackLineupBackground(ctx, w, h) {
+  const grad = ctx.createLinearGradient(0, 0, 0, h)
+  grad.addColorStop(0, '#0a194f')
+  grad.addColorStop(0.3, '#1e3a8a')
+  grad.addColorStop(0.7, '#1e3a8a')
+  grad.addColorStop(1, '#050c26')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, w, h)
+
+  ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)'
+  ctx.lineWidth = 4
+  ctx.strokeRect(30, 30, w - 60, h - 60)
+
+  // Prompt text
+  ctx.font = '700 28px sans-serif'
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('📁 Carrega a imagem do teu template de jogo', w / 2, 220)
 }
