@@ -3,7 +3,7 @@ import { Calendar, FolderPlus, Trash2, Shirt, Trophy } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
 export default function MatchdayHeaderBar({
-  matchdaysList,
+  matchdaysList = [],
   currentMatchdayId,
   onSwitchMatchday,
   onAddMatchday,
@@ -14,7 +14,7 @@ export default function MatchdayHeaderBar({
   const [showModal, setShowModal] = useState(false)
   const [newRoundInput, setNewRoundInput] = useState('')
 
-  const currentMatchday = matchdaysList.find(m => m.id === currentMatchdayId) || matchdaysList[0]
+  const currentMatchday = (matchdaysList && matchdaysList.find(m => m.id === currentMatchdayId)) || (matchdaysList && matchdaysList[0]) || { roundNumber: '4ª' }
 
   const handleCreateSubmit = (e) => {
     e.preventDefault()
@@ -67,14 +67,14 @@ export default function MatchdayHeaderBar({
                 onChange={(e) => onSwitchMatchday(e.target.value)}
                 className="bg-slate-950 text-white font-bold text-sm px-3.5 py-1.5 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
               >
-                {matchdaysList.map((m) => (
+                {(matchdaysList || []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.roundNumber} Jornada
                   </option>
                 ))}
               </select>
 
-              {matchdaysList.length > 1 && (
+              {(matchdaysList?.length || 0) > 1 && (
                 <button
                   onClick={handleDelete}
                   className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
@@ -86,7 +86,7 @@ export default function MatchdayHeaderBar({
 
               <button
                 onClick={() => {
-                  const nextNum = matchdaysList.length + 1
+                  const nextNum = (matchdaysList?.length || 0) + 1
                   setNewRoundInput(`${nextNum}ª`)
                   setShowModal(true)
                 }}

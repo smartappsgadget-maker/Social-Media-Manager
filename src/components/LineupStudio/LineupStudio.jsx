@@ -8,23 +8,13 @@ import {
   Copy, 
   Check, 
   ArrowRight,
-  RefreshCw,
-  Image as ImageIcon,
-  Home,
-  Plane,
   FileText,
   Camera,
   Trash2,
-  Plus,
-  Calendar,
-  History,
-  FolderPlus,
-  Shield,
-  CheckCircle2,
   Type,
   LayoutGrid,
   ListOrdered,
-  Trophy
+  Image as ImageIcon
 } from 'lucide-react'
 import { 
   DEFAULT_TEMPLATE_IMAGE,
@@ -36,23 +26,9 @@ import {
   FULL_CLUB_SQUAD
 } from '../../data/lineupTemplates'
 import { 
-  loadMatchdays, 
-  saveAllMatchdays, 
-  getActiveMatchdayId, 
-  setActiveMatchdayId, 
-  createNewMatchday, 
-  deleteMatchday, 
   loadSquadPhotos, 
   saveSquadPhotos 
 } from '../../services/matchdayStorage'
-import { 
-  loadLeagueTeams, 
-  saveLeagueTeams, 
-  upsertLeagueTeam, 
-  processOpponentEmblemsBatch, 
-  loadMyClub, 
-  saveMyClub 
-} from '../../services/teamBadgesStorage'
 import { renderLineupToCanvas } from '../../services/lineupRenderer'
 import confetti from 'canvas-confetti'
 
@@ -78,6 +54,7 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
   // Typography & Layout Mode matching the template
   const [displayMode, setDisplayMode] = useState('list') // 'list' | 'tactical'
   const [selectedFont, setSelectedFont] = useState('pirata') // 'pirata' | 'germania' | 'grenze'
+  const [forceDynamicJornada, setForceDynamicJornada] = useState(false)
 
   const [showQuickPaste, setShowQuickPaste] = useState(false)
   const [quickPasteText, setQuickPasteText] = useState('')
@@ -149,66 +126,6 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
   const updatePhotosMemory = (newPhotos) => {
     setPlayerPhotos(newPhotos)
     saveSquadPhotos(newPhotos)
-  }
-
-  // Handle selecting opponent from league list
-  const handleSelectOpponent = (name) => {
-    const cleanName = (name || '').trim().toUpperCase()
-    const found = leagueTeams.find(t => t.name.toUpperCase() === cleanName)
-    setMatchDetails(prev => ({
-      ...prev,
-      opponentName: cleanName,
-      opponentLogoUrl: found ? found.logoUrl : null
-    }))
-  }
-
-  // Handle uploading logo for currently selected opponent
-  const handleUploadOpponentLogo = (e) => {
-    const file = e.target.files && e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const logoUrl = event.target.result
-        const oppName = (matchDetails.opponentName || 'ADVERSÁRIO').toUpperCase()
-        const updatedTeams = upsertLeagueTeam(oppName, logoUrl)
-        setLeagueTeams(updatedTeams)
-        setMatchDetails(prev => ({ ...prev, opponentLogoUrl: logoUrl }))
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  // Handle batch uploading league crests
-  const handleBatchOpponentLogos = (e) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-
-    processOpponentEmblemsBatch(files, (updatedTeams) => {
-      setLeagueTeams([...updatedTeams])
-      // Check if current opponent's logo was updated
-      const oppName = (matchDetails.opponentName || '').toUpperCase()
-      const found = updatedTeams.find(t => t.name.toUpperCase().includes(oppName) || oppName.includes(t.name.toUpperCase()))
-      if (found && found.logoUrl) {
-        setMatchDetails(prev => ({ ...prev, opponentLogoUrl: found.logoUrl }))
-      }
-      confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } })
-    })
-  }
-
-  // Handle uploading our official club crest (AD Guimarei)
-  const handleUploadMyClubLogo = (e) => {
-    const file = e.target.files && e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const crestUrl = event.target.result
-        const updated = { ...myClub, crestUrl }
-        saveMyClub(updated)
-        setMyClub(updated)
-        setMatchDetails(prev => ({ ...prev, myClubLogoUrl: crestUrl }))
-      }
-      reader.readAsDataURL(file)
-    }
   }
 
   // Multi-photo batch upload (automatically matches 1.png, 7.jpg to player numbers!)
@@ -1173,255 +1090,6 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
 
         </div>
       </div>
-
-      {/* Modal: Create New Matchday */}
-      {showNewMatchdayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <form onSubmit={handleCreateNewMatchdaySubmit} className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl p-6 space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <FolderPlus className="w-5 h-5 text-blue-400" />
-              <span>Criar Nova Jornada da Época</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              O plantel e as fotos dos jogadores são mantidos automaticamente. Só precisas de indicar o número da nova jornada e o adversário:
-            </p>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Número da Jornada (ex: 5ª, 6ª, 7ª...)
-              </label>
-              <input
-                type="text"
-                required
-                value={newRoundInput}
-                onChange={(e) => setNewRoundInput(e.target.value)}
-                placeholder="Ex: 5ª"
-                className="w-full glass-input px-3.5 py-2.5 rounded-xl text-sm text-white font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Nome do Próximo Adversário
-              </label>
-              <select
-                value={newOpponent}
-                onChange={(e) => setNewOpponent(e.target.value)}
-                className="w-full bg-slate-950 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer mb-2"
-              >
-                <option value="">-- Escolher da Lista da Liga --</option>
-                {leagueTeams.map((t) => (
-                  <option key={t.id || t.name} value={t.name}>
-                    {t.name} {t.logoUrl ? '🛡️ (Com Emblema)' : ''}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="text"
-                value={newOpponent}
-                onChange={(e) => setNewOpponent(e.target.value)}
-                placeholder="Ou escreva novo adversário"
-                className="w-full glass-input px-3.5 py-2 rounded-xl text-xs text-white uppercase font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Onde é o Jogo?
-              </label>
-              <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setNewIsHome(true)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                    newIsHome ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  EM CASA 🏠
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewIsHome(false)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                    !newIsHome ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  FORA ✈️
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowNewMatchdayModal(false)}
-                className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors"
-              >
-                Criar e Começar Jornada
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* League Badges Manager Modal */}
-      {showLeagueBadgesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl p-6 flex flex-col max-h-[88vh]">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">
-                    Base de Dados de Emblemas da Liga AFAST
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Os emblemas carregados ficam gravados na memória para todas as jornadas
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowLeagueBadgesModal(false)}
-                className="text-slate-400 hover:text-white text-xs px-2.5 py-1 rounded-lg bg-slate-800"
-              >
-                ✕ Fechar
-              </button>
-            </div>
-
-            {/* Top action: Batch upload */}
-            <div className="py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/70">
-              <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow transition-all">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Carregar Lote de Emblemas (Ficheiros)</span>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleBatchOpponentLogos}
-                  className="hidden"
-                />
-              </label>
-
-              {/* Add new team manually */}
-              <div className="flex items-center gap-1.5 flex-1 max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Nome do Novo Clube"
-                  value={newTeamNameInput}
-                  onChange={(e) => setNewTeamNameInput(e.target.value)}
-                  className="glass-input px-2.5 py-1.5 rounded-xl text-xs text-white uppercase flex-1 font-semibold"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newTeamNameInput.trim()) {
-                      const updated = upsertLeagueTeam(newTeamNameInput.trim(), null)
-                      setLeagueTeams([...updated])
-                      setNewTeamNameInput('')
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"
-                >
-                  + Adicionar
-                </button>
-              </div>
-            </div>
-
-            {/* Teams List */}
-            <div className="flex-1 overflow-y-auto py-3 space-y-2 pr-1">
-              {/* Permanent AD Guimarei */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-950 border border-blue-400 flex items-center justify-center overflow-hidden">
-                    {myClub.crestUrl ? (
-                      <img src={myClub.crestUrl} alt="ADG" className="w-full h-full object-contain p-1" />
-                    ) : (
-                      <span className="text-[11px] font-black text-blue-300">ADG</span>
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-white">{myClub.name}</span>
-                    <span className="text-[10px] text-blue-400 block font-semibold">O Nosso Clube (Permanente)</span>
-                  </div>
-                </div>
-
-                <label className="cursor-pointer px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all">
-                  <span>Alterar</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleUploadMyClubLogo}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {/* League Opponents */}
-              {leagueTeams.map((team) => (
-                <div key={team.id || team.name} className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden">
-                      {team.logoUrl ? (
-                        <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain p-1" />
-                      ) : (
-                        <Shield className="w-4 h-4 text-slate-600" />
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-white">{team.name}</span>
-                      <span className={`text-[10px] block ${team.logoUrl ? 'text-emerald-400' : 'text-slate-500'}`}>
-                        {team.logoUrl ? '✓ Emblema Configurado' : 'Sem Emblema'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <label className="cursor-pointer px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all">
-                    <span>{team.logoUrl ? 'Substituir' : 'Carregar'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files && e.target.files[0]
-                        if (file) {
-                          const reader = new FileReader()
-                          reader.onload = (event) => {
-                            const updated = upsertLeagueTeam(team.name, event.target.result)
-                            setLeagueTeams([...updated])
-                            if ((matchDetails.opponentName || '').toUpperCase() === team.name.toUpperCase()) {
-                              setMatchDetails(prev => ({ ...prev, opponentLogoUrl: event.target.result }))
-                            }
-                          }
-                          reader.readAsDataURL(file)
-                        }
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-3 border-t border-slate-800 flex justify-end">
-              <button
-                onClick={() => setShowLeagueBadgesModal(false)}
-                className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
-              >
-                Concluído
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Quick Paste Modal */}
       {showQuickPaste && (

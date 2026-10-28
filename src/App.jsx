@@ -5,6 +5,7 @@ import ResultStudio from './components/ResultStudio/ResultStudio'
 import WatermarkStudio from './components/WatermarkStudio/WatermarkStudio'
 import VideoStudio from './components/VideoStudio/VideoStudio'
 import MatchdayHeaderBar from './components/Common/MatchdayHeaderBar'
+import ErrorBoundary from './components/Common/ErrorBoundary'
 import {
   loadMatchdays,
   saveAllMatchdays,
@@ -73,48 +74,50 @@ export default function App() {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content Area */}
-      <main className="flex-1">
-        {/* Matchday Header Bar - Unifies Jornadas for Lineup & Result */}
-        {(activeTab === 'generator' || activeTab === 'result') && (
-          <MatchdayHeaderBar
-            matchdaysList={matchdaysList}
-            currentMatchdayId={currentMatchdayId}
-            onSwitchMatchday={handleSwitchMatchday}
-            onAddMatchday={handleAddMatchday}
-            onDeleteMatchday={handleDeleteMatchday}
-            activeStudio={activeTab}
-            onSwitchStudio={setActiveTab}
-          />
-        )}
+      <ErrorBoundary>
+        <main className="flex-1">
+          {/* Matchday Header Bar - Unifies Jornadas for Lineup & Result */}
+          {(activeTab === 'generator' || activeTab === 'result') && (
+            <MatchdayHeaderBar
+              matchdaysList={matchdaysList}
+              currentMatchdayId={currentMatchdayId}
+              onSwitchMatchday={handleSwitchMatchday}
+              onAddMatchday={handleAddMatchday}
+              onDeleteMatchday={handleDeleteMatchday}
+              activeStudio={activeTab}
+              onSwitchStudio={setActiveTab}
+            />
+          )}
 
-        {activeTab === 'generator' && (
-          <LineupStudio
-            currentMatchday={currentMatchday}
-            onUpdateMatchday={handleUpdateCurrentMatchday}
-            onSendToWatermark={handleSendToWatermark}
-            onSwitchToResult={() => setActiveTab('result')}
-          />
-        )}
+          {activeTab === 'generator' && (
+            <LineupStudio
+              currentMatchday={currentMatchday}
+              onUpdateMatchday={handleUpdateCurrentMatchday}
+              onSendToWatermark={handleSendToWatermark}
+              onSwitchToResult={() => setActiveTab('result')}
+            />
+          )}
 
-        {activeTab === 'result' && (
-          <ResultStudio
-            currentMatchday={currentMatchday}
-            onUpdateMatchday={handleUpdateCurrentMatchday}
-            onSendToWatermark={handleSendToWatermark}
-            onSwitchToLineup={() => setActiveTab('generator')}
-          />
-        )}
+          {activeTab === 'result' && (
+            <ResultStudio
+              currentMatchday={currentMatchday}
+              onUpdateMatchday={handleUpdateCurrentMatchday}
+              onSendToWatermark={handleSendToWatermark}
+              onSwitchToLineup={() => setActiveTab('generator')}
+            />
+          )}
 
-        {activeTab === 'video' && (
-          <VideoStudio />
-        )}
+          {activeTab === 'video' && (
+            <VideoStudio />
+          )}
 
-        {activeTab === 'watermark' && (
-          <WatermarkStudio
-            initialImage={forwardedImage}
-          />
-        )}
-      </main>
+          {activeTab === 'watermark' && (
+            <WatermarkStudio
+              initialImage={forwardedImage}
+            />
+          )}
+        </main>
+      </ErrorBoundary>
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950/90 py-6 text-xs text-slate-500 text-center">
