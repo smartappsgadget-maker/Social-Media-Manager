@@ -99,30 +99,61 @@ export const CLUB_THEMES = [
   }
 ]
 
-// 11 Titulares
+// Plantel Oficial Completo da Época (27 Jogadores)
+export const FULL_CLUB_SQUAD = [
+  { number: '31', name: 'JOÃO ANDREZO' },
+  { number: '45', name: 'MIEIRO' },
+  { number: '5', name: 'TAREMI' },
+  { number: '6', name: 'CHICO' },
+  { number: '7', name: 'CHICO CARVALHO' },
+  { number: '8', name: 'GARCEZ' },
+  { number: '9', name: 'ALAN' },
+  { number: '10', name: 'CLAUDIO' },
+  { number: '11', name: 'JOTA' },
+  { number: '12', name: 'DUARTE' },
+  { number: '14', name: 'DAVID' },
+  { number: '16', name: 'DANIEL' },
+  { number: '17', name: 'JOÃO' },
+  { number: '18', name: 'LUIS MOREIRA' },
+  { number: '19', name: 'WALDECK' },
+  { number: '20', name: 'ZÉ' },
+  { number: '21', name: 'SIMÃO' },
+  { number: '22', name: 'GONÇALO' },
+  { number: '24', name: 'RAFA' },
+  { number: '25', name: 'ALEX' },
+  { number: '26', name: 'MARTO' },
+  { number: '28', name: 'NELSON' },
+  { number: '29', name: 'FININHO' },
+  { number: '88', name: 'SIEGHOLD' },
+  { number: '30', name: 'DANY' },
+  { number: '95', name: 'TELMO' },
+  { number: '95', name: 'ANDRE' }
+]
+
+// 11 Titulares Oficiais
 export const DEFAULT_STARTING_XI = [
-  { number: '1', name: 'MIGUEL' },
-  { number: '2', name: 'TIAGO' },
-  { number: '3', name: 'DIOGO', isCaptain: true },
-  { number: '4', name: 'RÚBEN' },
-  { number: '5', name: 'ANDRÉ' },
-  { number: '6', name: 'JOÃO' },
-  { number: '7', name: 'GONÇALO' },
-  { number: '8', name: 'BRUNO' },
-  { number: '9', name: 'PEDRO' },
-  { number: '10', name: 'RAFAEL' },
-  { number: '11', name: 'BERNARDO' }
+  { number: '31', name: 'JOÃO ANDREZO' },
+  { number: '45', name: 'MIEIRO' },
+  { number: '5', name: 'TAREMI' },
+  { number: '6', name: 'CHICO' },
+  { number: '7', name: 'CHICO CARVALHO' },
+  { number: '8', name: 'GARCEZ' },
+  { number: '9', name: 'ALAN' },
+  { number: '10', name: 'CLAUDIO' },
+  { number: '11', name: 'JOTA' },
+  { number: '12', name: 'DUARTE' },
+  { number: '14', name: 'DAVID' }
 ]
 
 // Exatamente 7 Suplentes conforme as regras oficiais de jogo
 export const DEFAULT_SUBSTITUTES = [
-  { number: '12', name: 'LUÍS (GR)' },
-  { number: '13', name: 'DANIEL' },
-  { number: '14', name: 'FRANCISCO' },
-  { number: '15', name: 'TOMÁS' },
-  { number: '16', name: 'RODRIGO' },
-  { number: '17', name: 'MARTIM' },
-  { number: '18', name: 'AFONSO' }
+  { number: '16', name: 'DANIEL' },
+  { number: '17', name: 'JOÃO' },
+  { number: '18', name: 'LUIS MOREIRA' },
+  { number: '19', name: 'WALDECK' },
+  { number: '20', name: 'ZÉ' },
+  { number: '21', name: 'SIMÃO' },
+  { number: '22', name: 'GONÇALO' }
 ]
 
 export const DEFAULT_MATCH_DETAILS = {

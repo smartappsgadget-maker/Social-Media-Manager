@@ -6,36 +6,36 @@ const SQUAD_STORAGE_KEY = 'gral_squad_roster_v1'
 const MATCHDAYS_STORAGE_KEY = 'gral_season_matchdays_v1'
 const ACTIVE_MATCHDAY_KEY = 'gral_active_matchday_id_v1'
 
-// Default initial matchday (Jornada 4)
+// Default initial matchday (Jornada 4) with official squad roster
 const INITIAL_MATCHDAY_4 = {
   id: 'jornada-4',
   roundNumber: '4ª',
   isHome: true,
-  opponentName: 'ADVERSÁRIO',
+  opponentName: 'G.R.A.L.',
   date: 'HOJE',
-  venue: 'CAMPO DO G.R.A.L.',
+  venue: 'CAMPO DE JOGOS',
   coach: 'MISTER',
   starters: [
-    { number: '1', name: 'MIGUEL' },
-    { number: '2', name: 'TIAGO' },
-    { number: '3', name: 'DIOGO', isCaptain: true },
-    { number: '4', name: 'RÚBEN' },
-    { number: '5', name: 'ANDRÉ' },
-    { number: '6', name: 'JOÃO' },
-    { number: '7', name: 'GONÇALO' },
-    { number: '8', name: 'BRUNO' },
-    { number: '9', name: 'PEDRO' },
-    { number: '10', name: 'RAFAEL' },
-    { number: '11', name: 'BERNARDO' }
+    { number: '31', name: 'JOÃO ANDREZO' },
+    { number: '45', name: 'MIEIRO' },
+    { number: '5', name: 'TAREMI' },
+    { number: '6', name: 'CHICO' },
+    { number: '7', name: 'CHICO CARVALHO' },
+    { number: '8', name: 'GARCEZ' },
+    { number: '9', name: 'ALAN' },
+    { number: '10', name: 'CLAUDIO' },
+    { number: '11', name: 'JOTA' },
+    { number: '12', name: 'DUARTE' },
+    { number: '14', name: 'DAVID' }
   ],
   substitutes: [
-    { number: '12', name: 'LUÍS (GR)' },
-    { number: '13', name: 'DANIEL' },
-    { number: '14', name: 'FRANCISCO' },
-    { number: '15', name: 'TOMÁS' },
-    { number: '16', name: 'RODRIGO' },
-    { number: '17', name: 'MARTIM' },
-    { number: '18', name: 'AFONSO' }
+    { number: '16', name: 'DANIEL' },
+    { number: '17', name: 'JOÃO' },
+    { number: '18', name: 'LUIS MOREIRA' },
+    { number: '19', name: 'WALDECK' },
+    { number: '20', name: 'ZÉ' },
+    { number: '21', name: 'SIMÃO' },
+    { number: '22', name: 'GONÇALO' }
   ],
   createdAt: new Date().toISOString()
 }
@@ -46,7 +46,16 @@ export function loadMatchdays() {
     const raw = localStorage.getItem(MATCHDAYS_STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Auto-migrate if stored matchday still has old placeholder players (MIGUEL)
+        if (parsed[0]?.starters?.[0]?.name === 'MIGUEL') {
+          parsed[0].starters = INITIAL_MATCHDAY_4.starters
+          parsed[0].substitutes = INITIAL_MATCHDAY_4.substitutes
+          if (parsed[0].opponentName === 'ADVERSÁRIO') parsed[0].opponentName = 'G.R.A.L.'
+          saveAllMatchdays(parsed)
+        }
+        return parsed
+      }
     }
   } catch (err) {
     console.error('Error reading matchdays:', err)

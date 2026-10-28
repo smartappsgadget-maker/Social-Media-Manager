@@ -31,7 +31,8 @@ import {
   DEFAULT_SUBSTITUTES, 
   DEFAULT_MATCH_DETAILS,
   DISPLAY_MODES,
-  FONT_STYLES
+  FONT_STYLES,
+  FULL_CLUB_SQUAD
 } from '../../data/lineupTemplates'
 import { 
   loadMatchdays, 
@@ -1027,11 +1028,13 @@ export default function LineupStudio({ onSendToWatermark }) {
               {/* Player list with photos */}
               <div className="space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
                 <span className="text-[11px] font-bold text-slate-400 pl-1">
-                  Jogadores da Convocatória Atual:
+                  Plantel Oficial ({FULL_CLUB_SQUAD.length} Jogadores):
                 </span>
 
-                {starters.slice(0, 11).concat(substitutes.slice(0, 7)).map((player, idx) => {
+                {FULL_CLUB_SQUAD.map((player, idx) => {
                   const hasPhoto = Boolean(playerPhotos[player.number])
+                  const isStarter = starters.some(s => s.number === player.number)
+                  const isSub = substitutes.some(s => s.number === player.number)
                   return (
                     <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
                       <div className="flex items-center gap-2.5">
@@ -1047,7 +1050,9 @@ export default function LineupStudio({ onSendToWatermark }) {
 
                         <div>
                           <p className="font-bold text-white text-[11px]">#{player.number} {player.name}</p>
-                          <p className="text-[10px] text-slate-500">{idx < 11 ? 'Titular' : 'Suplente'}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {isStarter ? '⭐ No 11 Titular' : isSub ? '🔵 No Banco de Suplentes' : 'Plantel Geral'}
+                          </p>
                         </div>
                       </div>
 
@@ -1138,6 +1143,27 @@ export default function LineupStudio({ onSendToWatermark }) {
                             className="flex-1 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-700 uppercase font-semibold focus:outline-none"
                           />
 
+                          {/* Quick Squad Picker */}
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              const p = FULL_CLUB_SQUAD[e.target.value]
+                              if (p) {
+                                updateStarter(idx, 'number', p.number)
+                                updateStarter(idx, 'name', p.name)
+                              }
+                            }}
+                            className="bg-slate-900 text-slate-400 hover:text-white border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] cursor-pointer focus:outline-none"
+                            title="Escolher do plantel oficial"
+                          >
+                            <option value="">Plantel ▼</option>
+                            {FULL_CLUB_SQUAD.map((sq, sqIdx) => (
+                              <option key={sqIdx} value={sqIdx} className="bg-slate-950 text-white">
+                                #{sq.number} {sq.name}
+                              </option>
+                            ))}
+                          </select>
+
                           {/* Photo status */}
                           <label className="cursor-pointer p-1" title={hasPhoto ? 'Foto associada da memória' : 'Adicionar foto'}>
                             <Camera className={`w-3.5 h-3.5 ${hasPhoto ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`} />
@@ -1204,6 +1230,27 @@ export default function LineupStudio({ onSendToWatermark }) {
                         placeholder={`Nome do Suplente ${idx + 1}`}
                         className="flex-1 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-700 font-semibold focus:outline-none"
                       />
+
+                      {/* Quick Squad Picker */}
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const p = FULL_CLUB_SQUAD[e.target.value]
+                          if (p) {
+                            updateSub(idx, 'number', p.number)
+                            updateSub(idx, 'name', p.name)
+                          }
+                        }}
+                        className="bg-slate-900 text-slate-400 hover:text-white border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] cursor-pointer focus:outline-none"
+                        title="Escolher do plantel oficial"
+                      >
+                        <option value="">Plantel ▼</option>
+                        {FULL_CLUB_SQUAD.map((sq, sqIdx) => (
+                          <option key={sqIdx} value={sqIdx} className="bg-slate-950 text-white">
+                            #{sq.number} {sq.name}
+                          </option>
+                        ))}
+                      </select>
 
                       {/* Photo indicator */}
                       <label className="cursor-pointer p-1" title={hasPhoto ? 'Foto associada' : 'Adicionar foto'}>
