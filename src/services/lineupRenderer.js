@@ -1,6 +1,6 @@
-// Lineup Canvas Renderer tailored for the official 9:16 Matchday Template
-// Supports dynamic Matchday/Jornada (bottom-right), Top-Left Teams & Badges,
-// and 11 Starters + 7 Substitutes unified in the template's authentic Gothic/Blackletter typeface.
+// Lineup Canvas Renderer tailored for completing user-provided matchday templates
+// Only renders the 11 Starters (Titulares) and 7 Substitutes (Suplentes) + Coach,
+// using the authentic Gothic/Blackletter typeface matching the official template.
 
 export function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -31,17 +31,6 @@ export async function ensureGothicFontsLoaded() {
   }
 }
 
-// Format the Jornada round number string (e.g. "4", "4ª", "4ª JORNADA" -> "4ª")
-export function formatRoundNumber(roundStr) {
-  if (!roundStr) return '4ª'
-  const trimmed = String(roundStr).trim()
-  const match = trimmed.match(/\d+/)
-  if (match) {
-    return `${match[0]}ª`
-  }
-  return trimmed.toUpperCase()
-}
-
 export async function renderLineupToCanvas(canvas, lineupData) {
   if (!canvas || !lineupData) return
 
@@ -53,11 +42,10 @@ export async function renderLineupToCanvas(canvas, lineupData) {
     bgImage = '/template_onze_inicial.jpg',
     startingXI = [],
     substitutes = [],
-    playerPhotos = {}, // map: { '1': dataUrl, '7': dataUrl, ... }
+    playerPhotos = {}, // map: { '31': dataUrl, '5': dataUrl, ... }
     matchDetails = {},
     displayMode = 'list', // 'list' | 'tactical'
-    fontFamily = '"Pirata One", "Germania One", "Grenze Gotisch", cursive, serif',
-    forceDynamicJornada = false
+    fontFamily = '"Pirata One", "UnifrakturCook", "Germania One", "Grenze Gotisch", cursive, serif'
   } = lineupData
 
   // High-resolution canvas matching the template aspect ratio (9:16)
@@ -70,14 +58,13 @@ export async function renderLineupToCanvas(canvas, lineupData) {
   ctx.save()
   ctx.clearRect(0, 0, width, height)
 
-  // 1. Draw the Official Background Template Image
-  let loadedBgImg = null
+  // 1. Draw the user-provided Template Image as the pure base
   if (bgImage) {
     try {
-      loadedBgImg = await loadImage(bgImage)
+      const loadedBgImg = await loadImage(bgImage)
       ctx.drawImage(loadedBgImg, 0, 0, width, height)
     } catch {
-      // Fallback: icy blue gradient
+      // Fallback: blue/white gradient
       const grad = ctx.createLinearGradient(0, 0, 0, height)
       grad.addColorStop(0, '#0a194f')
       grad.addColorStop(0.3, '#ffffff')
@@ -88,14 +75,9 @@ export async function renderLineupToCanvas(canvas, lineupData) {
     }
   }
 
-  // 2. Teams & Emblems at Top-Left (exactly where emblems are in template)
-  await renderTopLeftTeamsAndEmblems(ctx, matchDetails, loadedBgImg, width, height, fontFamily)
-
-  // 3. Dynamic Jornada in Bottom-Right field (matching the template font and style)
-  renderDynamicJornada(ctx, matchDetails.roundNumber, loadedBgImg, width, height, fontFamily, forceDynamicJornada)
-
-  // 4. Render 11 Starters (Titulares) using the Template's Typeface
-  const startersStartY = 345
+  // 2. Render ONLY the 11 Starters (Titulares)
+  // Positioned in the central open zone (between top emblems and bottom crystal)
+  const startersStartY = 350
   const startersHeight = 780
   if (displayMode === 'tactical') {
     await renderStartersTactical(ctx, startingXI, playerPhotos, 200, startersStartY, 680, startersHeight, fontFamily)
@@ -104,7 +86,7 @@ export async function renderLineupToCanvas(canvas, lineupData) {
     await renderStartersList(ctx, startingXI, playerPhotos, 200, startersStartY, 680, startersHeight, fontFamily)
   }
 
-  // 5. Render Substitutes Section (Suplentes) using the Template's Typeface
+  // 3. Render ONLY the 7 Substitutes (Suplentes) + Coach
   const subsStartY = startersStartY + startersHeight + 25
   const subsHeight = 360
   await renderSubstitutesSection(ctx, substitutes, playerPhotos, matchDetails.coach, 200, subsStartY, 680, subsHeight, fontFamily)
@@ -113,196 +95,7 @@ export async function renderLineupToCanvas(canvas, lineupData) {
 }
 
 // =========================================================================
-// 2. TEAMS & EMBLEMS AT TOP-LEFT
-// "as equipas estarão em cima do lado esquerdo como tens os emblemas"
-// =========================================================================
-async function renderTopLeftTeamsAndEmblems(ctx, match, bgImg, w, h, fontName) {
-  ctx.save()
-
-  const isHome = match.isHome !== false
-  const myClubName = (match.myClubName || 'AD GUIMAREI').toUpperCase()
-  const opponentName = (match.opponentName || 'G.R.A.L.').toUpperCase()
-
-  const homeTeamName = isHome ? myClubName : opponentName
-  const homeLogo = isHome ? match.myClubLogoUrl : match.opponentLogoUrl
-
-  const awayTeamName = isHome ? opponentName : myClubName
-  const awayLogo = isHome ? match.opponentLogoUrl : match.myClubLogoUrl
-
-  // Top emblem center: (215, 125)
-  // Bottom emblem center: (215, 250)
-  const emblemRadius = 46
-
-  // If custom logo uploaded for Home team (different from the template's baked ADG)
-  if (homeLogo) {
-    await drawCustomEmblem(ctx, 215, 125, emblemRadius, homeLogo)
-  }
-
-  // If custom logo uploaded for Away team (different from the template's baked GRAL)
-  if (awayLogo) {
-    await drawCustomEmblem(ctx, 215, 250, emblemRadius, awayLogo)
-  }
-
-  // Render Team Names & VS alongside the emblems at the Top-Left
-  const textX = 285
-
-  // 1. Home Team Name (Top)
-  ctx.font = `700 27px ${fontName}`
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'middle'
-
-  // Crisp white outline
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
-  ctx.lineWidth = 3
-  ctx.strokeText(homeTeamName, textX, 125)
-
-  // Royal navy fill
-  ctx.fillStyle = '#002677'
-  ctx.fillText(homeTeamName, textX, 125)
-
-  // 2. Sleek VS + Home/Away Tag (Middle)
-  const tagText = isHome ? 'CASA 🏠' : 'FORA ✈️'
-  
-  // VS in Gothic
-  ctx.font = `700 20px ${fontName}`
-  ctx.strokeStyle = '#ffffff'
-  ctx.lineWidth = 2.5
-  ctx.strokeText('VS', textX, 186)
-  ctx.fillStyle = '#0052cc'
-  ctx.fillText('VS', textX, 186)
-
-  // Location pill next to VS
-  const pillX = textX + 44
-  const pillY = 173
-  const pillW = 86
-  const pillH = 24
-
-  ctx.fillStyle = 'rgba(10, 25, 79, 0.85)'
-  ctx.strokeStyle = '#0055ff'
-  ctx.lineWidth = 1.2
-  ctx.beginPath()
-  ctx.roundRect ? ctx.roundRect(pillX, pillY, pillW, pillH, 6) : ctx.rect(pillX, pillY, pillW, pillH)
-  ctx.fill()
-  ctx.stroke()
-
-  ctx.font = '800 11px "Montserrat", sans-serif'
-  ctx.fillStyle = '#38bdf8'
-  ctx.textAlign = 'center'
-  ctx.fillText(tagText, pillX + pillW / 2, pillY + pillH / 2 + 1)
-
-  // 3. Away Team Name (Bottom)
-  ctx.textAlign = 'left'
-  ctx.font = `700 27px ${fontName}`
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
-  ctx.lineWidth = 3
-  ctx.strokeText(awayTeamName, textX, 250)
-
-  ctx.fillStyle = '#002677'
-  ctx.fillText(awayTeamName, textX, 250)
-
-  ctx.restore()
-}
-
-// Helper to draw custom emblem over an emblem slot
-async function drawCustomEmblem(ctx, cx, cy, radius, logoUrl) {
-  try {
-    const img = await loadImage(logoUrl)
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-    ctx.fillStyle = '#ffffff'
-    ctx.fill()
-    ctx.clip()
-    ctx.drawImage(img, cx - radius, cy - radius, radius * 2, radius * 2)
-    ctx.restore()
-
-    // Outer ring
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-    ctx.strokeStyle = '#0044cc'
-    ctx.lineWidth = 2
-    ctx.stroke()
-    ctx.restore()
-  } catch {}
-}
-
-// =========================================================================
-// 3. DYNAMIC JORNADA (BOTTOM-RIGHT FIELD)
-// "analisa o templete que te enviei e terás de construir exatamente igual
-// consoante o nº de jornada que é o numero no campo inferior direito"
-// =========================================================================
-function renderDynamicJornada(ctx, roundNumber, bgImg, w, h, fontName, forceRedraw = false) {
-  const normRound = formatRoundNumber(roundNumber)
-
-  // If the round is not '4ª' (or if forceRedraw is true), patch the original 4ª seamlessly
-  const needsPatch = (normRound !== '4ª' || forceRedraw) && bgImg
-
-  if (needsPatch) {
-    ctx.save()
-    // Feathered texture patch from x=515, y=1515 to cover x=820, y=1515
-    const sx = 515, sy = 1515, sw = 195, sh = 225
-    const dx = 820, dy = 1515, dw = 195, dh = 225
-
-    try {
-      const patchCanvas = document.createElement('canvas')
-      patchCanvas.width = dw
-      patchCanvas.height = dh
-      const pctx = patchCanvas.getContext('2d')
-      if (pctx) {
-        pctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, dw, dh)
-
-        // Soft radial feathering
-        pctx.globalCompositeOperation = 'destination-in'
-        const grad = pctx.createRadialGradient(dw / 2, dh / 2, Math.min(dw, dh) * 0.28, dw / 2, dh / 2, Math.min(dw, dh) * 0.5)
-        grad.addColorStop(0, 'rgba(0,0,0,1)')
-        grad.addColorStop(0.75, 'rgba(0,0,0,0.95)')
-        grad.addColorStop(1, 'rgba(0,0,0,0)')
-        pctx.fillStyle = grad
-        pctx.fillRect(0, 0, dw, dh)
-
-        ctx.drawImage(patchCanvas, dx, dy)
-      } else {
-        ctx.drawImage(bgImg, sx, sy, sw, sh, dx, dy, dw, dh)
-      }
-    } catch {
-      ctx.drawImage(bgImg, sx, sy, sw, sh, dx, dy, dw, dh)
-    }
-    ctx.restore()
-  }
-
-  // If patched or forced, draw the dynamic round text in the exact blackletter style
-  if (needsPatch || forceRedraw) {
-    ctx.save()
-    
-    // Position matching the bottom-right "4ª" in the template
-    ctx.translate(905, 1630)
-    // Angled italic slant to match template crystals
-    ctx.transform(1, 0, -0.12, 1, 0, 0)
-
-    ctx.font = `italic 700 125px ${fontName}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-
-    // Subtle dark navy outline
-    ctx.strokeStyle = '#002677'
-    ctx.lineWidth = 3.5
-    ctx.strokeText(normRound, 0, 0)
-
-    // Royal blue gradient fill matching the template text
-    const grad = ctx.createLinearGradient(0, -65, 0, 65)
-    grad.addColorStop(0, '#0055ff')
-    grad.addColorStop(0.5, '#003da5')
-    grad.addColorStop(1, '#002366')
-    ctx.fillStyle = grad
-    ctx.fillText(normRound, 0, 0)
-
-    ctx.restore()
-  }
-}
-
-// =========================================================================
-// 4. STARTING 11 (TITULARES) - OFFICIAL POSTER LIST MODE (RECOMMENDED)
+// 11 TITULARES - LISTA OFICIAL DO POSTER
 // Unified with the template's Gothic/Blackletter font and colors
 // =========================================================================
 async function renderStartersList(ctx, starters, playerPhotos, startX, startY, totalW, totalH, fontName) {
@@ -372,13 +165,14 @@ async function renderStartersList(ctx, starters, playerPhotos, startX, startY, t
     ctx.textBaseline = 'middle'
 
     // Crisp white outline
+    const maxNameW = Math.max(totalW - (nameStartX - startX) - 40, 160)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
     ctx.lineWidth = 3.5
-    ctx.strokeText(name, nameStartX, rowY)
+    ctx.strokeText(name, nameStartX, rowY, maxNameW)
 
     // Deep royal navy fill
     ctx.fillStyle = '#002677'
-    ctx.fillText(name, nameStartX, rowY)
+    ctx.fillText(name, nameStartX, rowY, maxNameW)
 
     // 4. Captain Mark (C) in Golden Gothic Font
     if (player.isCaptain) {
@@ -390,7 +184,7 @@ async function renderStartersList(ctx, starters, playerPhotos, startX, startY, t
       ctx.lineWidth = 2
       ctx.strokeText('(C)', capX, rowY)
 
-      ctx.fillStyle = '#d97706' // amber/gold
+      ctx.fillStyle = '#d97706' // gold
       ctx.fillText('(C)', capX, rowY)
     }
 
@@ -415,8 +209,7 @@ async function renderStartersList(ctx, starters, playerPhotos, startX, startY, t
 }
 
 // =========================================================================
-// 4B. STARTING 11 (TITULARES) - TACTICAL 3-3-3-2 FORMATION MODE
-// Unified with the template's Gothic/Blackletter font
+// 11 TITULARES - FORMAÇÃO TÁTICA 3+3+3+2
 // =========================================================================
 async function renderStartersTactical(ctx, starters, playerPhotos, startX, startY, totalW, totalH, fontName) {
   const rowsPattern = [3, 3, 3, 2]
@@ -438,11 +231,14 @@ async function renderStartersTactical(ctx, starters, playerPhotos, startX, start
     for (let c = 0; c < numInRow; c++) {
       if (playerIdx >= starters.length) break
       const player = starters[playerIdx]
+      playerIdx++
+      if (!player || (!player.number?.trim() && !player.name?.trim())) {
+        continue
+      }
       const px = rowStartX + c * (cardW + gapX)
       const photoSrc = playerPhotos[player.number] || player.photoUrl
 
       await drawTacticalPlayerCard(ctx, px, rowY, cardW, cardH, player, photoSrc, fontName)
-      playerIdx++
     }
   }
 }
@@ -564,7 +360,7 @@ function drawTacticalNumberBadge(ctx, badgeX, badgeY, badgeSize, centerX, player
 }
 
 // =========================================================================
-// 5. SUBSTITUTES SECTION (SUPLENTES)
+// 7 SUPLENTES + TREINADOR
 // Unified with the template's Gothic/Blackletter font and colors
 // =========================================================================
 async function renderSubstitutesSection(ctx, substitutes, playerPhotos, coach, startX, startY, totalW, totalH, fontName) {
@@ -622,15 +418,16 @@ async function renderSubstitutesSection(ctx, substitutes, playerPhotos, coach, s
 
     // Substitute Name in Gothic Font (Royal Navy + White Outline)
     const nameX = numX + 16
+    const maxSubNameW = Math.max(colW - (nameX - colX) - 10, 120)
     ctx.font = `700 26px ${fontName}`
     ctx.textAlign = 'left'
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
     ctx.lineWidth = 2.5
-    ctx.strokeText(nameStr, nameX, itemY)
+    ctx.strokeText(nameStr, nameX, itemY, maxSubNameW)
 
     ctx.fillStyle = '#002677'
-    ctx.fillText(nameStr, nameX, itemY)
+    ctx.fillText(nameStr, nameX, itemY, maxSubNameW)
   }
 
   // 3. Coach (Treinador) in Gothic Font at the bottom

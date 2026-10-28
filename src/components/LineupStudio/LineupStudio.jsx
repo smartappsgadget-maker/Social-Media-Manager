@@ -84,7 +84,7 @@ export default function LineupStudio({ onSendToWatermark }) {
   const [bgImage, setBgImage] = useState(DEFAULT_TEMPLATE_IMAGE)
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState('match') // 'match' | 'photos' | 'starters' | 'subs'
+  const [activeTab, setActiveTab] = useState('template') // 'template' | 'starters' | 'subs' | 'photos'
 
   // Typography & Layout Mode matching the template
   const [displayMode, setDisplayMode] = useState('list') // 'list' | 'tactical'
@@ -466,6 +466,24 @@ export default function LineupStudio({ onSendToWatermark }) {
     setQuickPasteText('')
   }
 
+  // Template upload / change
+  const handleTemplateUpload = (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setBgImage(event.target.result)
+        confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Restore the default official template
+  const handleResetTemplate = () => {
+    setBgImage(DEFAULT_TEMPLATE_IMAGE)
+  }
+
   // Update starter player with automatic squad lookup by number
   const updateStarter = (index, field, value) => {
     setStarters((prev) => {
@@ -475,7 +493,8 @@ export default function LineupStudio({ onSendToWatermark }) {
         if (!cleanNum) {
           updated[index] = { ...updated[index], number: '', name: '' }
         } else {
-          const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
+          const intNum = parseInt(cleanNum, 10)
+          const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum || (!isNaN(intNum) && parseInt(p.number, 10) === intNum))
           if (matched) {
             updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
           } else {
@@ -485,6 +504,15 @@ export default function LineupStudio({ onSendToWatermark }) {
       } else {
         updated[index] = { ...updated[index], [field]: value }
       }
+      return updated
+    })
+  }
+
+  // Clear single starter slot
+  const clearStarter = (index) => {
+    setStarters((prev) => {
+      const updated = [...prev]
+      updated[index] = { number: '', name: '', isCaptain: false }
       return updated
     })
   }
@@ -513,7 +541,8 @@ export default function LineupStudio({ onSendToWatermark }) {
         if (!cleanNum) {
           updated[index] = { ...updated[index], number: '', name: '' }
         } else {
-          const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum)
+          const intNum = parseInt(cleanNum, 10)
+          const matched = FULL_CLUB_SQUAD.find(p => p.number === cleanNum || (!isNaN(intNum) && parseInt(p.number, 10) === intNum))
           if (matched) {
             updated[index] = { ...updated[index], number: cleanNum, name: matched.name }
           } else {
@@ -523,6 +552,15 @@ export default function LineupStudio({ onSendToWatermark }) {
       } else {
         updated[index] = { ...updated[index], [field]: value }
       }
+      return updated
+    })
+  }
+
+  // Clear single substitute slot
+  const clearSub = (index) => {
+    setSubstitutes((prev) => {
+      const updated = [...prev]
+      updated[index] = { number: '', name: '' }
       return updated
     })
   }
@@ -544,20 +582,20 @@ export default function LineupStudio({ onSendToWatermark }) {
 
     if (numbers.length === 0) return
 
-    const newStarters = numbers.slice(0, 11).map((num, idx) => {
-      const found = FULL_CLUB_SQUAD.find(p => p.number === num)
-      const currentPrev = starters[idx]
-      return {
-        number: num,
-        name: found ? found.name : `JOGADOR ${num}`,
-        isCaptain: currentPrev?.isCaptain || false
+    const newStarters = Array.from({ length: 11 }, (_, idx) => {
+      if (idx < numbers.length) {
+        const num = numbers[idx]
+        const intNum = parseInt(num, 10)
+        const found = FULL_CLUB_SQUAD.find(p => p.number === num || (!isNaN(intNum) && parseInt(p.number, 10) === intNum))
+        const currentPrev = starters[idx]
+        return {
+          number: num,
+          name: found ? found.name : `JOGADOR ${num}`,
+          isCaptain: currentPrev?.isCaptain || false
+        }
       }
+      return { number: '', name: '', isCaptain: false }
     })
-
-    while (newStarters.length < 11) {
-      const nextIdx = newStarters.length + 1
-      newStarters.push({ number: String(nextIdx), name: `JOGADOR ${nextIdx}` })
-    }
 
     setStarters(newStarters)
     setStartersNumbersInput('')
@@ -576,18 +614,18 @@ export default function LineupStudio({ onSendToWatermark }) {
 
     if (numbers.length === 0) return
 
-    const newSubs = numbers.slice(0, 7).map((num) => {
-      const found = FULL_CLUB_SQUAD.find(p => p.number === num)
-      return {
-        number: num,
-        name: found ? found.name : `SUPLENTE ${num}`
+    const newSubs = Array.from({ length: 7 }, (_, idx) => {
+      if (idx < numbers.length) {
+        const num = numbers[idx]
+        const intNum = parseInt(num, 10)
+        const found = FULL_CLUB_SQUAD.find(p => p.number === num || (!isNaN(intNum) && parseInt(p.number, 10) === intNum))
+        return {
+          number: num,
+          name: found ? found.name : `SUPLENTE ${num}`
+        }
       }
+      return { number: '', name: '' }
     })
-
-    while (newSubs.length < 7) {
-      const nextIdx = newSubs.length + 1
-      newSubs.push({ number: String(11 + nextIdx), name: `SUPLENTE ${nextIdx}` })
-    }
 
     setSubstitutes(newSubs)
     setSubsNumbersInput('')
@@ -791,27 +829,15 @@ export default function LineupStudio({ onSendToWatermark }) {
           {/* Tab Navigation */}
           <div className="flex border-b border-slate-800 pb-3 gap-1 overflow-x-auto scrollbar-none">
             <button
-              onClick={() => setActiveTab('match')}
+              onClick={() => setActiveTab('template')}
               className={`flex-1 flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'match'
+                activeTab === 'template'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
-              <Home className="w-3.5 h-3.5" />
-              <span>Jogo & Casa/Fora</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('photos')}
-              className={`flex-1 flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'photos'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`}
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Plantel ({photosCount})</span>
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>Template & Estilo</span>
             </button>
 
             <button
@@ -837,86 +863,68 @@ export default function LineupStudio({ onSendToWatermark }) {
               <Users className="w-3.5 h-3.5" />
               <span>7 Suplentes</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('photos')}
+              className={`flex-1 flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'photos'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Plantel ({photosCount})</span>
+            </button>
           </div>
 
-          {/* TAB 1: MATCH DETAILS (JORNADA & CASA/FORA & EMBLEMAS) */}
-          {activeTab === 'match' && (
+          {/* TAB 1: TEMPLATE & ESTILO (CARREGAR TEMPLATE & APRESENTAÇÃO) */}
+          {activeTab === 'template' && (
             <div className="space-y-4">
-              {/* Casa vs Fora Toggle */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Localização Desta Jornada:
-                </label>
-                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setMatchDetails({ ...matchDetails, isHome: true })}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      matchDetails.isHome
-                        ? 'bg-blue-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Home className="w-4 h-4" />
-                    <span>JOGO EM CASA 🏠</span>
-                  </button>
+              
+              {/* Card 1: Carregar Template de Fundo */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-blue-900/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-blue-400" />
+                    <span>Template de Fundo Oficial</span>
+                  </h4>
+                  <span className="text-[10px] text-blue-400 font-bold px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30">
+                    Proporção 9:16 HD
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Carrega a imagem do teu template de jogo. O sistema utiliza-o como fundo e <strong>apenas completa com os 11 titulares e os 7 suplentes</strong> com a tipografia gótica oficial, sem alterar o teu design, emblemas ou jornada!
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <label className="flex-1 flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-blue-600/20 transition-all hover:scale-[1.02]">
+                    <Upload className="w-4 h-4" />
+                    <span>Carregar Novo Template de Jogo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleTemplateUpload}
+                      className="hidden"
+                    />
+                  </label>
 
                   <button
                     type="button"
-                    onClick={() => setMatchDetails({ ...matchDetails, isHome: false })}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      !matchDetails.isHome
-                        ? 'bg-blue-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    onClick={handleResetTemplate}
+                    className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+                    title="Restaurar o template original padrão"
                   >
-                    <Plane className="w-4 h-4" />
-                    <span>JOGO FORA ✈️</span>
+                    Restaurar Padrão
                   </button>
                 </div>
               </div>
 
-              {/* Número da Jornada & Treinador */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Número da Jornada
-                  </label>
-                  <input
-                    type="text"
-                    value={matchDetails.roundNumber || ''}
-                    onChange={(e) => setMatchDetails({ ...matchDetails, roundNumber: e.target.value })}
-                    placeholder="Ex: 4ª, 5ª, 6ª"
-                    className="w-full glass-input px-3 py-2 rounded-xl text-xs text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500 mt-1 block">
-                    Atualiza o símbolo da jornada no canto inferior direito
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Treinador / Equipa Técnica
-                  </label>
-                  <input
-                    type="text"
-                    value={matchDetails.coach || ''}
-                    onChange={(e) => setMatchDetails({ ...matchDetails, coach: e.target.value })}
-                    placeholder="Ex: MISTER"
-                    className="w-full glass-input px-3 py-2 rounded-xl text-xs text-white font-semibold"
-                  />
-                  <span className="text-[10px] text-slate-500 mt-1 block">
-                    Aparece no rodapé junto aos 7 suplentes
-                  </span>
-                </div>
-              </div>
-
-              {/* Estilo do Cartaz & Tipografia Oficial */}
-              <div className="pt-3 border-t border-slate-800 space-y-3">
+              {/* Card 2: Estilo e Apresentação */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Type className="w-4 h-4 text-blue-400" />
-                    <span>Estilo & Tipografia Oficial do Template</span>
+                    <span>Estilo & Tipografia Oficial</span>
                   </span>
                   <span className="text-[10px] font-bold text-blue-400 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30">
                     Gótico Oficial
@@ -928,11 +936,11 @@ export default function LineupStudio({ onSendToWatermark }) {
                   <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
                     Modo de Apresentação do 11 Inicial:
                   </label>
-                  <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+                  <div className="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
                     <button
                       type="button"
                       onClick={() => setDisplayMode('list')}
-                      className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                      className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
                         displayMode === 'list'
                           ? 'bg-blue-600 text-white shadow'
                           : 'text-slate-400 hover:text-white'
@@ -945,7 +953,7 @@ export default function LineupStudio({ onSendToWatermark }) {
                     <button
                       type="button"
                       onClick={() => setDisplayMode('tactical')}
-                      className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                      className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
                         displayMode === 'tactical'
                           ? 'bg-blue-600 text-white shadow'
                           : 'text-slate-400 hover:text-white'
@@ -965,136 +973,85 @@ export default function LineupStudio({ onSendToWatermark }) {
                   <select
                     value={selectedFont}
                     onChange={(e) => setSelectedFont(e.target.value)}
-                    className="w-full bg-slate-950 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full bg-slate-900 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
                   >
                     <option value="pirata">Pirata One (Gótico Oficial - Idêntico ao Template)</option>
                     <option value="unifraktur">UnifrakturCook (Fraktur Koch Tradicional)</option>
                     <option value="germania">Germania One (Fraktur Moderno)</option>
                     <option value="grenze">Grenze Gotisch (Textura Medieval)</option>
                   </select>
-                  <span className="text-[10px] text-slate-500 mt-1 block">
-                    Todos os 11 titulares, 7 suplentes, treinador e jornada usam esta mesma fonte oficial.
-                  </span>
+                </div>
+
+                {/* Treinador */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                    Treinador / Equipa Técnica (no rodapé):
+                  </label>
+                  <input
+                    type="text"
+                    value={matchDetails.coach || ''}
+                    onChange={(e) => setMatchDetails({ ...matchDetails, coach: e.target.value })}
+                    placeholder="Ex: MISTER"
+                    className="w-full glass-input px-3 py-2 rounded-xl text-xs text-white font-semibold uppercase"
+                  />
                 </div>
               </div>
 
-              {/* Equipas & Emblemas Oficiais */}
-              <div className="pt-3 border-t border-slate-800 space-y-3">
+              {/* Card 3: Informações do Jogo (Para Legenda das Redes Sociais) */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Shield className="w-4 h-4 text-blue-400" />
-                    <span>Equipas & Emblemas do Jogo</span>
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Detalhes do Jogo (Legenda das Redes Sociais)</span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowLeagueBadgesModal(true)}
-                    className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1"
-                  >
-                    <span>Gerir Liga ({leagueTeams.length})</span>
-                  </button>
                 </div>
 
-                {/* Card 1: A Nossa Equipa (AD GUIMAREI) */}
-                <div className="p-3 rounded-2xl bg-slate-950/80 border border-blue-900/50 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-11 h-11 rounded-full bg-blue-950 border border-blue-500/40 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {myClub.crestUrl ? (
-                        <img src={myClub.crestUrl} alt="AD Guimarei" className="w-full h-full object-contain p-1" />
-                      ) : (
-                        <span className="text-xs font-black text-blue-300">ADG</span>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-white">{myClub.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
-                          A Nossa Equipa
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Clube fixo em todos os cartazes de jogo
-                      </p>
-                    </div>
-                  </div>
-
-                  <label className="cursor-pointer px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-blue-300 border border-slate-700 text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{myClub.crestUrl ? 'Alterar' : 'Emblema'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleUploadMyClubLogo}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {/* Card 2: Adversário da Jornada */}
-                <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                      Selecionar Adversário da Liga AFAST:
-                    </label>
-                    <select
-                      value={matchDetails.opponentName || ''}
-                      onChange={(e) => handleSelectOpponent(e.target.value)}
-                      className="w-full bg-slate-900 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
-                    >
-                      <option value="">-- Escolher Adversário --</option>
-                      {leagueTeams.map((t) => (
-                        <option key={t.id || t.name} value={t.name}>
-                          {t.name} {t.logoUrl ? '🛡️ (Com Emblema)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-11 h-11 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {matchDetails.opponentLogoUrl ? (
-                        <img src={matchDetails.opponentLogoUrl} alt={matchDetails.opponentName} className="w-full h-full object-contain p-1" />
-                      ) : (
-                        <Shield className="w-5 h-5 text-slate-600" />
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={matchDetails.opponentName || ''}
-                        onChange={(e) => handleSelectOpponent(e.target.value)}
-                        placeholder="Nome do Adversário"
-                        className="w-full glass-input px-3 py-1.5 rounded-xl text-xs text-white uppercase font-bold"
-                      />
-                      <span className="text-[10px] text-slate-500 mt-0.5 block">
-                        Podes editar o nome ou escrever qualquer novo clube
-                      </span>
-                    </div>
-
-                    <label className="cursor-pointer px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-700 text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0" title="Carregar emblema para este adversário">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Emblema</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUploadOpponentLogo}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Batch Upload for Opponent Badges */}
-                  <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-dashed border-slate-700 hover:border-blue-500/60 text-xs font-semibold cursor-pointer transition-all">
-                    <Upload className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Carregar Todos os Emblemas da Liga (Lote de Imagens)</span>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Jornada:</label>
                     <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleBatchOpponentLogos}
-                      className="hidden"
+                      type="text"
+                      value={matchDetails.roundNumber || ''}
+                      onChange={(e) => setMatchDetails({ ...matchDetails, roundNumber: e.target.value })}
+                      placeholder="Ex: 4ª"
+                      className="w-full glass-input px-2.5 py-1.5 rounded-lg text-xs text-white font-bold"
                     />
-                  </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Adversário:</label>
+                    <input
+                      type="text"
+                      value={matchDetails.opponentName || ''}
+                      onChange={(e) => setMatchDetails({ ...matchDetails, opponentName: e.target.value })}
+                      placeholder="Nome do Adversário"
+                      className="w-full glass-input px-2.5 py-1.5 rounded-lg text-xs text-white font-bold uppercase"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Localização:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMatchDetails({ ...matchDetails, isHome: true })}
+                      className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                        matchDetails.isHome ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Casa 🏠
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMatchDetails({ ...matchDetails, isHome: false })}
+                      className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                        !matchDetails.isHome ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Fora ✈️
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1265,14 +1222,19 @@ export default function LineupStudio({ onSendToWatermark }) {
                       const player = starters[idx] || { number: '', name: '' }
                       const hasPhoto = Boolean(playerPhotos[player.number])
                       return (
-                        <div key={idx} className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-950/70 border border-slate-800">
+                        <div key={idx} className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-950/70 border border-slate-800">
+                          {/* Slot index */}
+                          <span className="text-[11px] font-mono text-slate-500 w-5 text-center">
+                            {idx + 1}
+                          </span>
+
                           {/* Number */}
                           <input
                             type="text"
                             value={player.number}
                             onChange={(e) => updateStarter(idx, 'number', e.target.value)}
                             placeholder="Nº"
-                            className="w-11 bg-slate-900 text-white font-mono text-xs px-1.5 py-1 rounded-lg border border-slate-700 text-center font-bold"
+                            className="w-12 bg-slate-900 text-white font-mono text-xs px-1.5 py-1 rounded-lg border border-slate-700 text-center font-bold focus:border-blue-500"
                           />
 
                           {/* Name */}
@@ -1280,8 +1242,8 @@ export default function LineupStudio({ onSendToWatermark }) {
                             type="text"
                             value={player.name}
                             onChange={(e) => updateStarter(idx, 'name', e.target.value)}
-                            placeholder="Nome do Jogador"
-                            className="flex-1 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-700 uppercase font-semibold focus:outline-none"
+                            placeholder={`Titular ${idx + 1}`}
+                            className="flex-1 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-700 uppercase font-semibold focus:outline-none focus:border-blue-500"
                           />
 
                           {/* Quick Squad Picker */}
@@ -1327,6 +1289,18 @@ export default function LineupStudio({ onSendToWatermark }) {
                           >
                             C
                           </button>
+
+                          {/* Clear single slot */}
+                          {(player.number || player.name) && (
+                            <button
+                              type="button"
+                              onClick={() => clearStarter(idx)}
+                              className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                              title="Limpar este titular"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       )
                     })}
@@ -1442,6 +1416,18 @@ export default function LineupStudio({ onSendToWatermark }) {
                           className="hidden"
                         />
                       </label>
+
+                      {/* Clear single slot */}
+                      {(sub.number || sub.name) && (
+                        <button
+                          type="button"
+                          onClick={() => clearSub(idx)}
+                          className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                          title="Limpar este suplente"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   )
                 })}

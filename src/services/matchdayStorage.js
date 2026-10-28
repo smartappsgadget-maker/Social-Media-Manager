@@ -3,8 +3,8 @@
 // Preserves player portraits across all matchdays so photos are only uploaded once!
 
 const SQUAD_STORAGE_KEY = 'gral_squad_roster_v1'
-const MATCHDAYS_STORAGE_KEY = 'gral_season_matchdays_v1'
-const ACTIVE_MATCHDAY_KEY = 'gral_active_matchday_id_v1'
+const MATCHDAYS_STORAGE_KEY = 'gral_season_matchdays_v2'
+const ACTIVE_MATCHDAY_KEY = 'gral_active_matchday_id_v2'
 
 // Default initial matchday (Jornada 4) with official squad roster
 const INITIAL_MATCHDAY_4 = {
