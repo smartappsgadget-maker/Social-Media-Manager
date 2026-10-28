@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Type,
   LayoutGrid,
-  ListOrdered
+  ListOrdered,
+  Trophy
 } from 'lucide-react'
 import { 
   DEFAULT_TEMPLATE_IMAGE,
@@ -55,7 +56,7 @@ import {
 import { renderLineupToCanvas } from '../../services/lineupRenderer'
 import confetti from 'canvas-confetti'
 
-export default function LineupStudio({ onSendToWatermark }) {
+export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
   // Season Matchdays state
   const [matchdaysList, setMatchdaysList] = useState([])
   const [currentMatchdayId, setCurrentMatchdayId] = useState('jornada-4')
@@ -716,8 +717,19 @@ export default function LineupStudio({ onSendToWatermark }) {
           </div>
         </div>
 
-        {/* Action: Add New Matchday */}
+        {/* Action: Add New Matchday & Switch to Result */}
         <div className="flex items-center gap-2">
+          {onSwitchToResult && (
+            <button
+              onClick={onSwitchToResult}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 hover:text-white border border-amber-500/30 font-bold text-xs transition-all hover:scale-105 whitespace-nowrap"
+              title="Criar Cartaz com o Resultado do Jogo"
+            >
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span>Cartaz de Resultado</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               const nextNum = matchdaysList.length + 1

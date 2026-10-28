@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { 
   Shirt, 
+  Trophy,
   Stamp, 
   Video, 
   HelpCircle, 
@@ -16,9 +17,15 @@ export default function Navbar({ activeTab, setActiveTab }) {
   const tabs = [
     {
       id: 'generator',
-      label: '11 Inicial & Templates',
+      label: '11 Inicial',
       icon: Shirt,
-      desc: '11 Inicial, Suplentes & Campo'
+      desc: '11 Inicial & 7 Suplentes'
+    },
+    {
+      id: 'result',
+      label: 'Resultado de Jogo',
+      icon: Trophy,
+      desc: 'Placar & Marcadores de Golos'
     },
     {
       id: 'video',
