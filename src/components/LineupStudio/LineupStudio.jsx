@@ -138,8 +138,7 @@ export default function LineupStudio({ onSendToWatermark }) {
         isHome: activeItem.isHome !== false,
         opponentName: activeItem.opponentName || 'ADVERSÁRIO',
         opponentLogoUrl: oppLogo,
-        myClubLogoUrl: loadedClub.crestUrl || null,
-        coach: activeItem.coach || 'MISTER'
+        myClubLogoUrl: loadedClub.crestUrl || null
       })
     }
   }, [])
@@ -157,7 +156,6 @@ export default function LineupStudio({ onSendToWatermark }) {
           opponentName: matchDetails.opponentName,
           opponentLogoUrl: matchDetails.opponentLogoUrl,
           myClubLogoUrl: matchDetails.myClubLogoUrl,
-          coach: matchDetails.coach,
           starters,
           substitutes: substitutes.slice(0, 7)
         }
@@ -191,8 +189,7 @@ export default function LineupStudio({ onSendToWatermark }) {
       isHome: target.isHome !== false,
       opponentName: target.opponentName || 'ADVERSÁRIO',
       opponentLogoUrl: oppLogo,
-      myClubLogoUrl: myClub.crestUrl || null,
-      coach: target.coach || 'MISTER'
+      myClubLogoUrl: myClub.crestUrl || null
     })
   }
 
@@ -225,8 +222,7 @@ export default function LineupStudio({ onSendToWatermark }) {
       isHome: created.isHome,
       opponentName: created.opponentName,
       opponentLogoUrl: oppLogo,
-      myClubLogoUrl: myClub.crestUrl || null,
-      coach: created.coach
+      myClubLogoUrl: myClub.crestUrl || null
     })
 
     setShowNewMatchdayModal(false)
@@ -659,7 +655,7 @@ export default function LineupStudio({ onSendToWatermark }) {
     const subList = substitutes.slice(0, 7).map(s => `#${s.number} ${s.name}`).join(', ')
     const local = matchDetails.isHome ? 'EM CASA 🏠' : 'FORA ✈️'
 
-    const text = `📋 ONZE INICIAL • ${matchDetails.roundNumber || '4ª'} JORNADA 🔥⚽\n\n🏆 ${matchDetails.competition || 'Campeonato Concelhio AFAST'}\n📍 Jogo: ${local} vs ${matchDetails.opponentName || 'Adversário'}\n📅 Época 26/27\n\n11 TITULAR (3+3+3+2):\n${starList}\n\nBANCO DE SUPLENTES (7):\n${subList}\n\nTREINADOR: ${matchDetails.coach || 'Equipa Técnica'}\n\n#GRAL #OnzeInicial #AFAST #FutebolConcelhio #DiaDeJogo #VamosEquipa`
+    const text = `📋 ONZE INICIAL • ${matchDetails.roundNumber || '4ª'} JORNADA 🔥⚽\n\n🏆 ${matchDetails.competition || 'Campeonato Concelhio AFAST'}\n📍 Jogo: ${local} vs ${matchDetails.opponentName || 'Adversário'}\n📅 Época 26/27\n\n11 TITULAR:\n${starList}\n\nBANCO DE SUPLENTES (7):\n${subList}\n\n#GRAL #OnzeInicial #AFAST #FutebolConcelhio #DiaDeJogo #VamosEquipa`
 
     navigator.clipboard.writeText(text)
     setCopiedCaption(true)
@@ -980,20 +976,6 @@ export default function LineupStudio({ onSendToWatermark }) {
                     <option value="germania">Germania One (Fraktur Moderno)</option>
                     <option value="grenze">Grenze Gotisch (Textura Medieval)</option>
                   </select>
-                </div>
-
-                {/* Treinador */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                    Treinador / Equipa Técnica (no rodapé):
-                  </label>
-                  <input
-                    type="text"
-                    value={matchDetails.coach || ''}
-                    onChange={(e) => setMatchDetails({ ...matchDetails, coach: e.target.value })}
-                    placeholder="Ex: MISTER"
-                    className="w-full glass-input px-3 py-2 rounded-xl text-xs text-white font-semibold uppercase"
-                  />
                 </div>
               </div>
 

@@ -14,7 +14,6 @@ const INITIAL_MATCHDAY_4 = {
   opponentName: 'G.R.A.L.',
   date: 'HOJE',
   venue: 'CAMPO DE JOGOS',
-  coach: 'MISTER',
   starters: Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })),
   substitutes: Array.from({ length: 7 }, () => ({ number: '', name: '' })),
   createdAt: new Date().toISOString()
@@ -78,7 +77,6 @@ export function createNewMatchday(roundNumber, isHome = true, opponentName = '',
     opponentName: opponentName || 'PRÓXIMO ADVERSÁRIO',
     date: 'PRÓXIMO JOGO',
     venue: isHome ? 'CAMPO DO G.R.A.L.' : 'CAMPO ADVERSÁRIO',
-    coach: previous.coach || 'MISTER',
     starters: JSON.parse(JSON.stringify(previous.starters || INITIAL_MATCHDAY_4.starters)),
     substitutes: JSON.parse(JSON.stringify(previous.substitutes || INITIAL_MATCHDAY_4.substitutes)),
     createdAt: new Date().toISOString()

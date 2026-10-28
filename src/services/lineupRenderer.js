@@ -86,10 +86,10 @@ export async function renderLineupToCanvas(canvas, lineupData) {
     await renderStartersList(ctx, startingXI, playerPhotos, 200, startersStartY, 680, startersHeight, fontFamily)
   }
 
-  // 3. Render ONLY the 7 Substitutes (Suplentes) + Coach
+  // 3. Render ONLY the 7 Substitutes (Suplentes)
   const subsStartY = startersStartY + startersHeight + 25
   const subsHeight = 360
-  await renderSubstitutesSection(ctx, substitutes, playerPhotos, matchDetails.coach, 200, subsStartY, 680, subsHeight, fontFamily)
+  await renderSubstitutesSection(ctx, substitutes, playerPhotos, 200, subsStartY, 680, subsHeight, fontFamily)
 
   ctx.restore()
 }
@@ -360,10 +360,10 @@ function drawTacticalNumberBadge(ctx, badgeX, badgeY, badgeSize, centerX, player
 }
 
 // =========================================================================
-// 7 SUPLENTES + TREINADOR
+// 7 SUPLENTES
 // Unified with the template's Gothic/Blackletter font and colors
 // =========================================================================
-async function renderSubstitutesSection(ctx, substitutes, playerPhotos, coach, startX, startY, totalW, totalH, fontName) {
+async function renderSubstitutesSection(ctx, substitutes, playerPhotos, startX, startY, totalW, totalH, fontName) {
   ctx.save()
 
   const centerX = startX + totalW / 2
@@ -428,23 +428,6 @@ async function renderSubstitutesSection(ctx, substitutes, playerPhotos, coach, s
 
     ctx.fillStyle = '#002677'
     ctx.fillText(nameStr, nameX, itemY, maxSubNameW)
-  }
-
-  // 3. Coach (Treinador) in Gothic Font at the bottom
-  if (coach) {
-    const coachY = startY + totalH - 12
-    const coachText = `TREINADOR: ${coach.toUpperCase()}`
-
-    ctx.font = `700 23px ${fontName}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
-    ctx.lineWidth = 2.5
-    ctx.strokeText(coachText, centerX, coachY)
-
-    ctx.fillStyle = '#002677'
-    ctx.fillText(coachText, centerX, coachY)
   }
 
   ctx.restore()

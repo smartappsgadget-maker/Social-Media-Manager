@@ -149,6 +149,5 @@ export const DEFAULT_MATCH_DETAILS = {
   teamName: 'G.R.A.L.',
   competition: 'CAMPEONATO CONCELHIO AFAST',
   matchRound: '4ª JORNADA',
-  season: '26/27',
-  coach: 'MISTER'
+  season: '26/27'
 }
