@@ -22,8 +22,14 @@ import { renderResultToCanvas } from '../../services/resultRenderer'
 import confetti from 'canvas-confetti'
 
 export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
-  // Template image
-  const [bgImage, setBgImage] = useState(null)
+  // Template image (persisted in browser storage)
+  const [bgImage, setBgImage] = useState(() => {
+    try {
+      return localStorage.getItem('gral_result_template') || null
+    } catch {
+      return null
+    }
+  })
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState('score') // 'template' | 'score' | 'scorers'
@@ -60,17 +66,31 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
     setPlayerPhotos(loadedPhotos)
   }, [])
 
-  // Handle template upload
+  // Handle template upload with auto-save
   const handleTemplateUpload = (e) => {
     const file = e.target.files && e.target.files[0]
     if (file) {
       const reader = new FileReader()
       reader.onload = (event) => {
-        setBgImage(event.target.result)
+        const dataUrl = event.target.result
+        setBgImage(dataUrl)
+        try {
+          localStorage.setItem('gral_result_template', dataUrl)
+        } catch (err) {
+          console.warn('LocalStorage save error:', err)
+        }
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
       }
       reader.readAsDataURL(file)
     }
+  }
+
+  // Remove template
+  const handleRemoveTemplate = () => {
+    setBgImage(null)
+    try {
+      localStorage.removeItem('gral_result_template')
+    } catch {}
   }
 
   // Render canvas whenever data changes
@@ -633,7 +653,7 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
                   {bgImage && (
                     <button
                       type="button"
-                      onClick={() => setBgImage(null)}
+                      onClick={handleRemoveTemplate}
                       className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
                     >
                       Remover Fundo

@@ -81,8 +81,14 @@ export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
   // Permanent squad photos pool: { '1': dataUrl, '7': dataUrl, ... }
   const [playerPhotos, setPlayerPhotos] = useState({})
 
-  // Template image asset
-  const [bgImage, setBgImage] = useState(DEFAULT_TEMPLATE_IMAGE)
+  // Template image asset (persisted in browser storage)
+  const [bgImage, setBgImage] = useState(() => {
+    try {
+      return localStorage.getItem('gral_lineup_template') || DEFAULT_TEMPLATE_IMAGE
+    } catch {
+      return DEFAULT_TEMPLATE_IMAGE
+    }
+  })
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState('template') // 'template' | 'starters' | 'subs' | 'photos'
@@ -463,13 +469,19 @@ export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
     setQuickPasteText('')
   }
 
-  // Template upload / change
+  // Template upload / change with auto-save
   const handleTemplateUpload = (e) => {
     const file = e.target.files && e.target.files[0]
     if (file) {
       const reader = new FileReader()
       reader.onload = (event) => {
-        setBgImage(event.target.result)
+        const dataUrl = event.target.result
+        setBgImage(dataUrl)
+        try {
+          localStorage.setItem('gral_lineup_template', dataUrl)
+        } catch (err) {
+          console.warn('LocalStorage save error:', err)
+        }
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
       }
       reader.readAsDataURL(file)
@@ -479,6 +491,9 @@ export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
   // Restore the default official template
   const handleResetTemplate = () => {
     setBgImage(DEFAULT_TEMPLATE_IMAGE)
+    try {
+      localStorage.removeItem('gral_lineup_template')
+    } catch {}
   }
 
   // Update starter player with automatic squad lookup by number
