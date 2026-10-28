@@ -89,6 +89,16 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
     }
   }, [currentMatchday?.id])
 
+  // 2.5. Auto-save changes to the current active matchday
+  useEffect(() => {
+    if (!currentMatchday) return
+    onUpdateMatchday?.({
+      lineupBgImage: bgImage,
+      starters,
+      substitutes
+    })
+  }, [bgImage, starters, substitutes])
+
   // 3. Re-render canvas whenever data changes
   useEffect(() => {
     if (canvasRef.current) {
@@ -242,7 +252,7 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
     setQuickPasteText('')
   }
 
-  // Template upload / change with auto-save
+  // Template upload / change with auto-save to current matchday
   const handleTemplateUpload = (e) => {
     const file = e.target.files && e.target.files[0]
     if (file) {
@@ -250,11 +260,7 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
       reader.onload = (event) => {
         const dataUrl = event.target.result
         setBgImage(dataUrl)
-        try {
-          localStorage.setItem('gral_lineup_template', dataUrl)
-        } catch (err) {
-          console.warn('LocalStorage save error:', err)
-        }
+        onUpdateMatchday?.({ lineupBgImage: dataUrl })
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
       }
       reader.readAsDataURL(file)
@@ -264,9 +270,7 @@ export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSend
   // Restore the default official template
   const handleResetTemplate = () => {
     setBgImage(DEFAULT_TEMPLATE_IMAGE)
-    try {
-      localStorage.removeItem('gral_lineup_template')
-    } catch {}
+    onUpdateMatchday?.({ lineupBgImage: DEFAULT_TEMPLATE_IMAGE })
   }
 
   // Update starter player with automatic squad lookup by number

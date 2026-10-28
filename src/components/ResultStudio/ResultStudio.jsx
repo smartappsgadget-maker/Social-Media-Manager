@@ -202,8 +202,9 @@ export default function ResultStudio({ currentMatchday, onUpdateMatchday, onSend
   // Download high-resolution image
   const handleDownload = () => {
     if (!canvasRef.current) return
+    const statusSlug = status === 'INTERVALO' ? 'intervalo' : 'final'
     const link = document.createElement('a')
-    link.download = `resultado-jogo-${myScore}-${opponentScore}-${Date.now()}.png`
+    link.download = `resultado-${statusSlug}-${myScore}-${opponentScore}-${Date.now()}.png`
     link.href = canvasRef.current.toDataURL('image/png', 0.95)
     document.body.appendChild(link)
     link.click()
@@ -219,9 +220,14 @@ export default function ResultStudio({ currentMatchday, onUpdateMatchday, onSend
       .map(s => `⚽ #${s.number} ${s.name}${s.minute ? ` (${s.minute})` : ''}`)
       .join('\n')
 
-    const statusTitle = status === 'FINAL' ? 'FIM DO JOGO' : status
+    const statusTitle = status === 'FINAL' 
+      ? 'FIM DO JOGO • RESULTADO FINAL' 
+      : status === 'INTERVALO'
+      ? 'INTERVALO • RESULTADO AO INTERVALO'
+      : status
 
-    const text = `🏆 ${statusTitle} 🔥⚽\n\nAD GUIMAREI ${myScore} - ${opponentScore} ADVERSÁRIO\n\n${scorersText ? `GOLOS:\n${scorersText}\n\n` : ''}#GRAL #ResultadoFinal #AFAST #FutebolConcelhio #DiaDeJogo`
+    const hashtagStatus = status === 'INTERVALO' ? 'Intervalo' : 'ResultadoFinal'
+    const text = `🏆 ${statusTitle} 🔥⚽\n\nAD GUIMAREI ${myScore} - ${opponentScore} ADVERSÁRIO\n\n${scorersText ? `GOLOS:\n${scorersText}\n\n` : ''}#GRAL #${hashtagStatus} #AFAST #FutebolConcelhio #DiaDeJogo`
 
     navigator.clipboard.writeText(text)
     setCopiedCaption(true)
