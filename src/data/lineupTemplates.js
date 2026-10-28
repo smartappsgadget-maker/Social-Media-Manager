@@ -1,6 +1,46 @@
-// Official Matchday Lineup Configuration (11 Titulares 3+3+3+2 e 7 Suplentes)
+// Official Matchday Lineup Configuration (11 Titulares & 7 Suplentes)
 
 export const DEFAULT_TEMPLATE_IMAGE = '/template_onze_inicial.jpg'
+
+export const DISPLAY_MODES = [
+  {
+    id: 'list',
+    name: 'Lista Oficial Poster (Gótico / Oficial)',
+    desc: 'Alinhamento em lista com a tipografia gótica do template oficial'
+  },
+  {
+    id: 'tactical',
+    name: 'Formação Tática 3+3+3+2',
+    desc: 'Linha 1 (3), Linha 2 (3), Linha 3 (3) e Linha 4 (2) com suporte a fotos'
+  }
+]
+
+export const FONT_STYLES = [
+  {
+    id: 'pirata',
+    name: 'Pirata One (Gótico Oficial)',
+    fontFamily: '"Pirata One", "UnifrakturCook", cursive, serif',
+    desc: 'Tipo de letra oficial idêntico ao template'
+  },
+  {
+    id: 'unifraktur',
+    name: 'UnifrakturCook (Fraktur Koch Tradicional)',
+    fontFamily: '"UnifrakturCook", cursive, serif',
+    desc: 'Letra gótica tradicional com traços afiados'
+  },
+  {
+    id: 'germania',
+    name: 'Germania One (Fraktur Moderno)',
+    fontFamily: '"Germania One", cursive, serif',
+    desc: 'Letra gótica encorpada e de fácil leitura'
+  },
+  {
+    id: 'grenze',
+    name: 'Grenze Gotisch (Textura Medieval)',
+    fontFamily: '"Grenze Gotisch", cursive, serif',
+    desc: 'Estilo clássico medieval afiado'
+  }
+]
 
 export const ROW_LAYOUTS = [
   {

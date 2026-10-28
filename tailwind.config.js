@@ -30,6 +30,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        gothic: ['"Pirata One"', '"Germania One"', '"Grenze Gotisch"', 'cursive', 'serif'],
+        pirata: ['"Pirata One"', 'cursive', 'serif'],
+        germania: ['"Germania One"', 'cursive', 'serif'],
       }
     },
   },

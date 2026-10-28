@@ -20,13 +20,18 @@ import {
   History,
   FolderPlus,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  Type,
+  LayoutGrid,
+  ListOrdered
 } from 'lucide-react'
 import { 
   DEFAULT_TEMPLATE_IMAGE,
   DEFAULT_STARTING_XI, 
   DEFAULT_SUBSTITUTES, 
-  DEFAULT_MATCH_DETAILS 
+  DEFAULT_MATCH_DETAILS,
+  DISPLAY_MODES,
+  FONT_STYLES
 } from '../../data/lineupTemplates'
 import { 
   loadMatchdays, 
@@ -79,6 +84,11 @@ export default function LineupStudio({ onSendToWatermark }) {
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState('match') // 'match' | 'photos' | 'starters' | 'subs'
+
+  // Typography & Layout Mode matching the template
+  const [displayMode, setDisplayMode] = useState('list') // 'list' | 'tactical'
+  const [selectedFont, setSelectedFont] = useState('pirata') // 'pirata' | 'germania' | 'grenze'
+  const [forceDynamicJornada, setForceDynamicJornada] = useState(false)
 
   // Modals
   const [showNewMatchdayModal, setShowNewMatchdayModal] = useState(false)
@@ -241,12 +251,23 @@ export default function LineupStudio({ onSendToWatermark }) {
   // 6. Re-render canvas whenever data changes
   useEffect(() => {
     if (canvasRef.current) {
+      const activeFontFamily = selectedFont === 'germania'
+        ? '"Germania One", cursive, serif'
+        : selectedFont === 'unifraktur'
+        ? '"UnifrakturCook", cursive, serif'
+        : selectedFont === 'grenze'
+        ? '"Grenze Gotisch", cursive, serif'
+        : '"Pirata One", "UnifrakturCook", "Germania One", cursive, serif'
+
       renderLineupToCanvas(canvasRef.current, {
         bgImage,
         startingXI: starters,
         substitutes: substitutes.slice(0, 7),
         playerPhotos,
-        matchDetails
+        matchDetails,
+        displayMode,
+        fontFamily: activeFontFamily,
+        forceDynamicJornada
       })
     }
   }, [
@@ -254,7 +275,10 @@ export default function LineupStudio({ onSendToWatermark }) {
     starters,
     substitutes,
     playerPhotos,
-    matchDetails
+    matchDetails,
+    displayMode,
+    selectedFont,
+    forceDynamicJornada
   ])
 
   // Save photos to permanent squad memory
@@ -782,6 +806,73 @@ export default function LineupStudio({ onSendToWatermark }) {
                 </div>
               </div>
 
+              {/* Estilo do Cartaz & Tipografia Oficial */}
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Type className="w-4 h-4 text-blue-400" />
+                    <span>Estilo & Tipografia Oficial do Template</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-blue-400 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30">
+                    Gótico Oficial
+                  </span>
+                </div>
+
+                {/* Mode Selector */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+                    Modo de Apresentação do 11 Inicial:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setDisplayMode('list')}
+                      className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                        displayMode === 'list'
+                          ? 'bg-blue-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <ListOrdered className="w-3.5 h-3.5" />
+                      <span>Lista Oficial Poster</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDisplayMode('tactical')}
+                      className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                        displayMode === 'tactical'
+                          ? 'bg-blue-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span>Formação 3+3+3+2</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Font Selector */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                    Tipo de Letra (Gótico Oficial):
+                  </label>
+                  <select
+                    value={selectedFont}
+                    onChange={(e) => setSelectedFont(e.target.value)}
+                    className="w-full bg-slate-950 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="pirata">Pirata One (Gótico Oficial - Idêntico ao Template)</option>
+                    <option value="unifraktur">UnifrakturCook (Fraktur Koch Tradicional)</option>
+                    <option value="germania">Germania One (Fraktur Moderno)</option>
+                    <option value="grenze">Grenze Gotisch (Textura Medieval)</option>
+                  </select>
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Todos os 11 titulares, 7 suplentes, treinador e jornada usam esta mesma fonte oficial.
+                  </span>
+                </div>
+              </div>
+
               {/* Equipas & Emblemas Oficiais */}
               <div className="pt-3 border-t border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
@@ -988,12 +1079,27 @@ export default function LineupStudio({ onSendToWatermark }) {
             </div>
           )}
 
-          {/* TAB 3: 11 TITULAR (3+3+3+2) */}
+          {/* TAB 3: 11 TITULARES */}
           {activeTab === 'starters' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-                <span>11 Titular da <strong>{matchDetails.roundNumber} Jornada</strong></span>
-                <span className="text-[11px] text-blue-400">Disposição 3+3+3+2</span>
+                <span>11 Titulares da <strong>{matchDetails.roundNumber} Jornada</strong></span>
+                <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode('list')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${displayMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Lista Poster
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode('tactical')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${displayMode === 'tactical' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    3+3+3+2
+                  </button>
+                </div>
               </div>
 
               {/* 11 Players Inputs Grouped into 4 Rows */}
