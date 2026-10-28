@@ -56,39 +56,21 @@ import {
 import { renderLineupToCanvas } from '../../services/lineupRenderer'
 import confetti from 'canvas-confetti'
 
-export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
-  // Season Matchdays state
-  const [matchdaysList, setMatchdaysList] = useState([])
-  const [currentMatchdayId, setCurrentMatchdayId] = useState('jornada-4')
+export default function LineupStudio({ currentMatchday, onUpdateMatchday, onSendToWatermark }) {
+  // Current active matchday squad & template
+  const [starters, setStarters] = useState(() => currentMatchday?.starters || DEFAULT_STARTING_XI)
+  const [substitutes, setSubstitutes] = useState(() => (currentMatchday?.substitutes || DEFAULT_SUBSTITUTES).slice(0, 7))
+  const [bgImage, setBgImage] = useState(() => currentMatchday?.lineupBgImage || DEFAULT_TEMPLATE_IMAGE)
 
-  // League teams and permanent club
-  const [leagueTeams, setLeagueTeams] = useState([])
-  const [myClub, setMyClub] = useState({ name: 'AD GUIMAREI', shortName: 'ADG', crestUrl: null })
-  const [showLeagueBadgesModal, setShowLeagueBadgesModal] = useState(false)
-
-  // Current active matchday details & squad
-  const [starters, setStarters] = useState(DEFAULT_STARTING_XI)
-  const [substitutes, setSubstitutes] = useState(DEFAULT_SUBSTITUTES.slice(0, 7))
   const [matchDetails, setMatchDetails] = useState({
     ...DEFAULT_MATCH_DETAILS,
-    roundNumber: '4ª',
-    isHome: true,
-    opponentName: 'ADVERSÁRIO',
-    opponentLogoUrl: null,
-    myClubLogoUrl: null
+    roundNumber: currentMatchday?.roundNumber || '4ª',
+    isHome: currentMatchday?.isHome !== false,
+    opponentName: currentMatchday?.opponentName || ''
   })
 
   // Permanent squad photos pool: { '1': dataUrl, '7': dataUrl, ... }
   const [playerPhotos, setPlayerPhotos] = useState({})
-
-  // Template image asset (persisted in browser storage)
-  const [bgImage, setBgImage] = useState(() => {
-    try {
-      return localStorage.getItem('gral_lineup_template') || DEFAULT_TEMPLATE_IMAGE
-    } catch {
-      return DEFAULT_TEMPLATE_IMAGE
-    }
-  })
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState('template') // 'template' | 'starters' | 'subs' | 'photos'
@@ -96,13 +78,6 @@ export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
   // Typography & Layout Mode matching the template
   const [displayMode, setDisplayMode] = useState('list') // 'list' | 'tactical'
   const [selectedFont, setSelectedFont] = useState('pirata') // 'pirata' | 'germania' | 'grenze'
-  const [forceDynamicJornada, setForceDynamicJornada] = useState(false)
-
-  // Modals
-  const [showNewMatchdayModal, setShowNewMatchdayModal] = useState(false)
-  const [newRoundInput, setNewRoundInput] = useState('')
-  const [newIsHome, setNewIsHome] = useState(true)
-  const [newOpponent, setNewOpponent] = useState('')
 
   const [showQuickPaste, setShowQuickPaste] = useState(false)
   const [quickPasteText, setQuickPasteText] = useState('')
@@ -113,150 +88,31 @@ export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
   const [subsNumbersInput, setSubsNumbersInput] = useState('')
 
   const canvasRef = useRef(null)
+  const lastMatchdayIdRef = useRef(currentMatchday?.id)
 
-  // 1. Initialize on Mount: Load matchdays, permanent squad photos & league teams
+  // 1. Initialize permanent squad photos on mount
   useEffect(() => {
-    const savedMatchdays = loadMatchdays()
-    const activeId = getActiveMatchdayId()
     const loadedPhotos = loadSquadPhotos()
-    const loadedTeams = loadLeagueTeams()
-    const loadedClub = loadMyClub()
-
-    setMatchdaysList(savedMatchdays)
     setPlayerPhotos(loadedPhotos)
-    setLeagueTeams(loadedTeams)
-    setMyClub(loadedClub)
-
-    const activeItem = savedMatchdays.find(m => m.id === activeId) || savedMatchdays[0]
-    if (activeItem) {
-      setCurrentMatchdayId(activeItem.id)
-      setStarters(activeItem.starters || DEFAULT_STARTING_XI)
-      setSubstitutes((activeItem.substitutes || DEFAULT_SUBSTITUTES).slice(0, 7))
-
-      let oppLogo = activeItem.opponentLogoUrl || null
-      if (!oppLogo && activeItem.opponentName) {
-        const found = loadedTeams.find(t => t.name.toUpperCase() === activeItem.opponentName.toUpperCase())
-        if (found) oppLogo = found.logoUrl
-      }
-
-      setMatchDetails({
-        ...DEFAULT_MATCH_DETAILS,
-        roundNumber: activeItem.roundNumber || '4ª',
-        isHome: activeItem.isHome !== false,
-        opponentName: activeItem.opponentName || 'ADVERSÁRIO',
-        opponentLogoUrl: oppLogo,
-        myClubLogoUrl: loadedClub.crestUrl || null
-      })
-    }
   }, [])
 
-  // 2. Auto-save current matchday when starters, subs or details change
+  // 2. Sync state when currentMatchday changes (user switched Jornada)
   useEffect(() => {
-    if (matchdaysList.length === 0) return
-
-    const updatedList = matchdaysList.map((m) => {
-      if (m.id === currentMatchdayId) {
-        return {
-          ...m,
-          roundNumber: matchDetails.roundNumber,
-          isHome: matchDetails.isHome,
-          opponentName: matchDetails.opponentName,
-          opponentLogoUrl: matchDetails.opponentLogoUrl,
-          myClubLogoUrl: matchDetails.myClubLogoUrl,
-          starters,
-          substitutes: substitutes.slice(0, 7)
-        }
-      }
-      return m
-    })
-
-    saveAllMatchdays(updatedList)
-    setMatchdaysList(updatedList)
-  }, [starters, substitutes, matchDetails])
-
-  // 3. Switch between saved matchdays (e.g. 1ª, 2ª, 3ª, 4ª, 5ª...)
-  const handleSwitchMatchday = (id) => {
-    const target = matchdaysList.find(m => m.id === id)
-    if (!target) return
-
-    setCurrentMatchdayId(id)
-    setActiveMatchdayId(id)
-    setStarters(target.starters || DEFAULT_STARTING_XI)
-    setSubstitutes((target.substitutes || DEFAULT_SUBSTITUTES).slice(0, 7))
-
-    let oppLogo = target.opponentLogoUrl || null
-    if (!oppLogo && target.opponentName) {
-      const found = leagueTeams.find(t => t.name.toUpperCase() === target.opponentName.toUpperCase())
-      if (found) oppLogo = found.logoUrl
+    if (currentMatchday && currentMatchday.id !== lastMatchdayIdRef.current) {
+      lastMatchdayIdRef.current = currentMatchday.id
+      setStarters(currentMatchday.starters || DEFAULT_STARTING_XI)
+      setSubstitutes((currentMatchday.substitutes || DEFAULT_SUBSTITUTES).slice(0, 7))
+      setBgImage(currentMatchday.lineupBgImage || DEFAULT_TEMPLATE_IMAGE)
+      setMatchDetails({
+        ...DEFAULT_MATCH_DETAILS,
+        roundNumber: currentMatchday.roundNumber || '4ª',
+        isHome: currentMatchday.isHome !== false,
+        opponentName: currentMatchday.opponentName || ''
+      })
     }
+  }, [currentMatchday?.id])
 
-    setMatchDetails({
-      ...DEFAULT_MATCH_DETAILS,
-      roundNumber: target.roundNumber || '4ª',
-      isHome: target.isHome !== false,
-      opponentName: target.opponentName || 'ADVERSÁRIO',
-      opponentLogoUrl: oppLogo,
-      myClubLogoUrl: myClub.crestUrl || null
-    })
-  }
-
-  // 4. Create a new Matchday for the next round
-  const handleCreateNewMatchdaySubmit = (e) => {
-    e.preventDefault()
-    if (!newRoundInput.trim()) return
-
-    const created = createNewMatchday(
-      newRoundInput.trim(),
-      newIsHome,
-      newOpponent.trim(),
-      currentMatchdayId
-    )
-
-    let oppLogo = null
-    if (newOpponent.trim()) {
-      const found = leagueTeams.find(t => t.name.toUpperCase() === newOpponent.trim().toUpperCase())
-      if (found) oppLogo = found.logoUrl
-    }
-
-    const updatedList = loadMatchdays()
-    setMatchdaysList(updatedList)
-    setCurrentMatchdayId(created.id)
-    setStarters(created.starters)
-    setSubstitutes(created.substitutes.slice(0, 7))
-    setMatchDetails({
-      ...DEFAULT_MATCH_DETAILS,
-      roundNumber: created.roundNumber,
-      isHome: created.isHome,
-      opponentName: created.opponentName,
-      opponentLogoUrl: oppLogo,
-      myClubLogoUrl: myClub.crestUrl || null
-    })
-
-    setShowNewMatchdayModal(false)
-    setNewRoundInput('')
-    setNewOpponent('')
-
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.8 }
-    })
-  }
-
-  // 5. Delete current matchday
-  const handleDeleteCurrentMatchday = () => {
-    if (matchdaysList.length <= 1) {
-      alert('Tem de manter pelo menos uma jornada na época.')
-      return
-    }
-    if (confirm(`Tem a certeza que deseja eliminar a ${matchDetails.roundNumber} Jornada?`)) {
-      const updated = deleteMatchday(currentMatchdayId)
-      setMatchdaysList(updated)
-      handleSwitchMatchday(updated[0].id)
-    }
-  }
-
-  // 6. Re-render canvas whenever data changes
+  // 3. Re-render canvas whenever data changes
   useEffect(() => {
     if (canvasRef.current) {
       const activeFontFamily = selectedFont === 'germania'
@@ -687,89 +543,14 @@ export default function LineupStudio({ onSendToWatermark, onSwitchToResult }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       
-      {/* 1. MATCHDAY SEASON MANAGER BAR */}
-      <div className="glass-panel p-4 rounded-3xl border border-slate-800 shadow-xl bg-slate-900/95 mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        
-        {/* Matchday Selector */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Época 26/27 • Jornada Ativa:
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                Guardado Auto
-              </span>
-            </div>
-            
-            {/* Dropdown selector */}
-            <div className="flex items-center gap-2 mt-1">
-              <select
-                value={currentMatchdayId}
-                onChange={(e) => handleSwitchMatchday(e.target.value)}
-                className="bg-slate-950 text-white font-bold text-sm px-3 py-1.5 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
-              >
-                {matchdaysList.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.roundNumber} Jornada • {m.isHome ? 'Casa' : 'Fora'} vs {m.opponentName || 'Adversário'}
-                  </option>
-                ))}
-              </select>
-
-              {matchdaysList.length > 1 && (
-                <button
-                  onClick={handleDeleteCurrentMatchday}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                  title="Eliminar esta jornada"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Action: Add New Matchday & Switch to Result */}
-        <div className="flex items-center gap-2">
-          {onSwitchToResult && (
-            <button
-              onClick={onSwitchToResult}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 hover:text-white border border-amber-500/30 font-bold text-xs transition-all hover:scale-105 whitespace-nowrap"
-              title="Criar Cartaz com o Resultado do Jogo"
-            >
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Cartaz de Resultado</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              const nextNum = matchdaysList.length + 1
-              setNewRoundInput(`${nextNum}ª`)
-              setShowNewMatchdayModal(true)
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all hover:scale-105 whitespace-nowrap"
-          >
-            <FolderPlus className="w-4 h-4" />
-            <span>+ Adicionar Próxima Jornada</span>
-          </button>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-            <span>{matchDetails.roundNumber} Jornada</span>
-            <span className="text-sm font-semibold text-slate-400">
-              ({matchDetails.isHome ? 'Jogo em Casa 🏠' : 'Jogo Fora ✈️'} vs {matchDetails.opponentName})
-            </span>
+            <span>{currentMatchday?.roundNumber || matchDetails.roundNumber || '4ª'} Jornada • 11 Inicial</span>
           </h2>
           <p className="text-xs text-slate-400">
-            As fotos dos jogadores ficam guardadas para toda a época. A cada jornada que passa, basta selecionar os 11 titulares e os 7 suplentes!
+            Cada jornada tem o seu próprio template e jogadores. As fotos do plantel ficam guardadas para toda a época!
           </p>
         </div>
 

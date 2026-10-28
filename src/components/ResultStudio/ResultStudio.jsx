@@ -21,30 +21,22 @@ import { loadSquadPhotos } from '../../services/matchdayStorage'
 import { renderResultToCanvas } from '../../services/resultRenderer'
 import confetti from 'canvas-confetti'
 
-export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
-  // Template image (persisted in browser storage)
-  const [bgImage, setBgImage] = useState(() => {
-    try {
-      return localStorage.getItem('gral_result_template') || null
-    } catch {
-      return null
-    }
-  })
+export default function ResultStudio({ currentMatchday, onUpdateMatchday, onSendToWatermark }) {
+  // Current active matchday template & score
+  const [bgImage, setBgImage] = useState(() => currentMatchday?.resultBgImage || null)
+  const [myScore, setMyScore] = useState(() => currentMatchday?.result?.myScore ?? 0)
+  const [opponentScore, setOpponentScore] = useState(() => currentMatchday?.result?.opponentScore ?? 0)
+  const [status, setStatus] = useState(() => currentMatchday?.result?.status || 'FINAL')
+  const [penaltyMyScore, setPenaltyMyScore] = useState(() => currentMatchday?.result?.penaltyMyScore || '')
+  const [penaltyOpponentScore, setPenaltyOpponentScore] = useState(() => currentMatchday?.result?.penaltyOpponentScore || '')
+
+  // Scorers list: [{ id, number, name, minute, goals }]
+  const [scorers, setScorers] = useState(() => currentMatchday?.result?.scorers || [])
+  const [newScorerNumber, setNewScorerNumber] = useState('')
+  const [newScorerMinute, setNewScorerMinute] = useState('')
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState('score') // 'template' | 'score' | 'scorers'
-
-  // Score details
-  const [myScore, setMyScore] = useState(2)
-  const [opponentScore, setOpponentScore] = useState(1)
-  const [status, setStatus] = useState('FINAL')
-  const [penaltyMyScore, setPenaltyMyScore] = useState('')
-  const [penaltyOpponentScore, setPenaltyOpponentScore] = useState('')
-
-  // Scorers list: [{ id, number, name, minute, goals }]
-  const [scorers, setScorers] = useState([])
-  const [newScorerNumber, setNewScorerNumber] = useState('')
-  const [newScorerMinute, setNewScorerMinute] = useState('')
 
   // Styling & Position offsets
   const [selectedFont, setSelectedFont] = useState('pirata')
@@ -59,6 +51,7 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
   // Feedback states
   const [copiedCaption, setCopiedCaption] = useState(false)
   const canvasRef = useRef(null)
+  const lastMatchdayIdRef = useRef(currentMatchday?.id)
 
   // Load photos from permanent squad roster on mount
   useEffect(() => {
@@ -66,7 +59,37 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
     setPlayerPhotos(loadedPhotos)
   }, [])
 
-  // Handle template upload with auto-save
+  // Sync state when active matchday changes (user switched Jornada)
+  useEffect(() => {
+    if (currentMatchday && currentMatchday.id !== lastMatchdayIdRef.current) {
+      lastMatchdayIdRef.current = currentMatchday.id
+      setBgImage(currentMatchday.resultBgImage || null)
+      setMyScore(currentMatchday.result?.myScore ?? 0)
+      setOpponentScore(currentMatchday.result?.opponentScore ?? 0)
+      setStatus(currentMatchday.result?.status || 'FINAL')
+      setPenaltyMyScore(currentMatchday.result?.penaltyMyScore || '')
+      setPenaltyOpponentScore(currentMatchday.result?.penaltyOpponentScore || '')
+      setScorers(currentMatchday.result?.scorers || [])
+    }
+  }, [currentMatchday?.id])
+
+  // Auto-save changes to the current matchday
+  useEffect(() => {
+    if (!currentMatchday) return
+    onUpdateMatchday?.({
+      resultBgImage: bgImage,
+      result: {
+        myScore,
+        opponentScore,
+        status,
+        penaltyMyScore,
+        penaltyOpponentScore,
+        scorers
+      }
+    })
+  }, [bgImage, myScore, opponentScore, status, penaltyMyScore, penaltyOpponentScore, scorers])
+
+  // Handle template upload
   const handleTemplateUpload = (e) => {
     const file = e.target.files && e.target.files[0]
     if (file) {
@@ -74,11 +97,7 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
       reader.onload = (event) => {
         const dataUrl = event.target.result
         setBgImage(dataUrl)
-        try {
-          localStorage.setItem('gral_result_template', dataUrl)
-        } catch (err) {
-          console.warn('LocalStorage save error:', err)
-        }
+        onUpdateMatchday?.({ resultBgImage: dataUrl })
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } })
       }
       reader.readAsDataURL(file)
@@ -88,9 +107,7 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
   // Remove template
   const handleRemoveTemplate = () => {
     setBgImage(null)
-    try {
-      localStorage.removeItem('gral_result_template')
-    } catch {}
+    onUpdateMatchday?.({ resultBgImage: null })
   }
 
   // Render canvas whenever data changes
@@ -214,38 +231,16 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       
-      {/* Top Studio Switcher Bar */}
-      <div className="glass-panel p-4 rounded-3xl border border-slate-800 shadow-xl bg-slate-900/95 mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-            <Trophy className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Cartaz de Resultado do Jogo
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                Ativo
-              </span>
-            </div>
-            <p className="text-xs text-white font-bold mt-0.5">
-              Placar Oficial & Marcadores de Golos
-            </p>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+            <span>{currentMatchday?.roundNumber || '4ª'} Jornada • Resultado de Jogo</span>
+          </h2>
+          <p className="text-xs text-slate-400">
+            Cada jornada guarda o seu próprio cartaz de resultado, placar e marcadores de golos!
+          </p>
         </div>
-
-        {/* Quick Switch to Lineup */}
-        {onSwitchToLineup && (
-          <button
-            onClick={onSwitchToLineup}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700/80 transition-all hover:scale-105"
-          >
-            <Shirt className="w-4 h-4 text-blue-400" />
-            <span>Alternar para 11 Inicial & Suplentes</span>
-          </button>
-        )}
       </div>
 
       {/* Main Grid */}
@@ -258,7 +253,7 @@ export default function ResultStudio({ onSendToWatermark, onSwitchToLineup }) {
             <div className="w-full flex items-center justify-between mb-4 pb-3 border-b border-slate-800 text-xs">
               <span className="text-slate-300 font-semibold flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                Cartaz de Resultado ({myScore} - {opponentScore})
+                Cartaz da {currentMatchday?.roundNumber || '4ª'} Jornada ({myScore} - {opponentScore})
               </span>
               <span className="font-mono text-amber-400 font-bold">
                 {bgImage ? 'Template Carregado' : 'Sem Template de Fundo'}

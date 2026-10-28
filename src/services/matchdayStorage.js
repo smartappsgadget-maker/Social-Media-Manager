@@ -1,22 +1,67 @@
 // Matchday & Squad Local Persistence Service
 // Allows managing the entire season journey by journey (Jornada 1, 2, 3, 4, 5...)
 // Preserves player portraits across all matchdays so photos are only uploaded once!
+// Each matchday stores its own Lineup Template, 11 Starters, 7 Subs, Result Template, and Score/Scorers.
 
 const SQUAD_STORAGE_KEY = 'gral_squad_roster_v1'
-const MATCHDAYS_STORAGE_KEY = 'gral_season_matchdays_v2'
-const ACTIVE_MATCHDAY_KEY = 'gral_active_matchday_id_v2'
+const MATCHDAYS_STORAGE_KEY = 'gral_season_matchdays_v3'
+const ACTIVE_MATCHDAY_KEY = 'gral_active_matchday_id_v3'
 
 // Default initial matchday (Jornada 4) with official squad roster
-const INITIAL_MATCHDAY_4 = {
+export const INITIAL_MATCHDAY_4 = {
   id: 'jornada-4',
   roundNumber: '4ª',
   isHome: true,
   opponentName: 'G.R.A.L.',
   date: 'HOJE',
   venue: 'CAMPO DE JOGOS',
+  lineupBgImage: '/template_onze_inicial.jpg',
+  resultBgImage: null,
   starters: Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })),
   substitutes: Array.from({ length: 7 }, () => ({ number: '', name: '' })),
+  result: {
+    myScore: 0,
+    opponentScore: 0,
+    status: 'FINAL',
+    penaltyMyScore: '',
+    penaltyOpponentScore: '',
+    scorers: []
+  },
   createdAt: new Date().toISOString()
+}
+
+// Sanitize matchday object ensuring all fields exist
+export function sanitizeMatchday(m) {
+  if (!m) return INITIAL_MATCHDAY_4
+  return {
+    id: m.id || `jornada-${Date.now().toString(36)}`,
+    roundNumber: m.roundNumber || '4ª',
+    isHome: m.isHome !== false,
+    opponentName: m.opponentName || '',
+    date: m.date || 'HOJE',
+    venue: m.venue || 'CAMPO DE JOGOS',
+    lineupBgImage: m.lineupBgImage !== undefined 
+      ? m.lineupBgImage 
+      : (localStorage.getItem('gral_lineup_template') || '/template_onze_inicial.jpg'),
+    resultBgImage: m.resultBgImage !== undefined 
+      ? m.resultBgImage 
+      : (localStorage.getItem('gral_result_template') || null),
+    starters: Array.isArray(m.starters) && m.starters.length === 11 
+      ? m.starters 
+      : Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })),
+    substitutes: Array.isArray(m.substitutes) && m.substitutes.length === 7 
+      ? m.substitutes 
+      : Array.from({ length: 7 }, () => ({ number: '', name: '' })),
+    result: m.result && typeof m.result === 'object' ? m.result : {
+      myScore: 0,
+      opponentScore: 0,
+      status: 'FINAL',
+      penaltyMyScore: '',
+      penaltyOpponentScore: '',
+      scorers: []
+    },
+    createdAt: m.createdAt || new Date().toISOString()
+  }
 }
 
 // Load all saved matchdays from local storage
@@ -26,7 +71,17 @@ export function loadMatchdays() {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        return parsed.map(sanitizeMatchday)
+      }
+    }
+    // Also try migrating from v2 if available
+    const legacyV2 = localStorage.getItem('gral_season_matchdays_v2')
+    if (legacyV2) {
+      const parsedV2 = JSON.parse(legacyV2)
+      if (Array.isArray(parsedV2) && parsedV2.length > 0) {
+        const sanitized = parsedV2.map(sanitizeMatchday)
+        saveAllMatchdays(sanitized)
+        return sanitized
       }
     }
   } catch (err) {
@@ -60,13 +115,9 @@ export function setActiveMatchdayId(id) {
   } catch {}
 }
 
-// Create a new matchday (e.g. 5ª Jornada) copying previous squad setup
-export function createNewMatchday(roundNumber, isHome = true, opponentName = '', copyFromId = null) {
+// Create a new matchday (e.g. 5ª Jornada)
+export function createNewMatchday(roundNumber, isHome = true, opponentName = '') {
   const matchdays = loadMatchdays()
-  const previous = copyFromId
-    ? matchdays.find(m => m.id === copyFromId)
-    : matchdays[matchdays.length - 1] || INITIAL_MATCHDAY_4
-
   const cleanNum = roundNumber.replace(/[^\d]/g, '') || String(matchdays.length + 1)
   const id = `jornada-${cleanNum}-${Date.now().toString(36)}`
 
@@ -74,11 +125,21 @@ export function createNewMatchday(roundNumber, isHome = true, opponentName = '',
     id,
     roundNumber: roundNumber.includes('ª') ? roundNumber : `${cleanNum}ª`,
     isHome,
-    opponentName: opponentName || 'PRÓXIMO ADVERSÁRIO',
+    opponentName: opponentName || '',
     date: 'PRÓXIMO JOGO',
-    venue: isHome ? 'CAMPO DO G.R.A.L.' : 'CAMPO ADVERSÁRIO',
-    starters: JSON.parse(JSON.stringify(previous.starters || INITIAL_MATCHDAY_4.starters)),
-    substitutes: JSON.parse(JSON.stringify(previous.substitutes || INITIAL_MATCHDAY_4.substitutes)),
+    venue: isHome ? 'CAMPO DE JOGOS' : 'CAMPO ADVERSÁRIO',
+    lineupBgImage: null, // Ready for this jornada's specific template upload
+    resultBgImage: null, // Ready for this jornada's specific result template upload
+    starters: Array.from({ length: 11 }, () => ({ number: '', name: '', isCaptain: false })),
+    substitutes: Array.from({ length: 7 }, () => ({ number: '', name: '' })),
+    result: {
+      myScore: 0,
+      opponentScore: 0,
+      status: 'FINAL',
+      penaltyMyScore: '',
+      penaltyOpponentScore: '',
+      scorers: []
+    },
     createdAt: new Date().toISOString()
   }
 
@@ -110,12 +171,11 @@ export function loadSquadPhotos() {
   return {}
 }
 
-// Save squad photos (persists photos for player #1, #7 etc across the whole season!)
-export function saveSquadPhotos(photosMap) {
+// Save permanent squad photos map
+export function saveSquadPhotos(photos) {
   try {
-    localStorage.setItem(SQUAD_STORAGE_KEY, JSON.stringify(photosMap))
+    localStorage.setItem(SQUAD_STORAGE_KEY, JSON.stringify(photos))
   } catch (err) {
-    // If quota exceeded due to large base64, warn in console
-    console.warn('Storage limit warning for photos:', err)
+    console.error('Error saving squad photos:', err)
   }
 }
